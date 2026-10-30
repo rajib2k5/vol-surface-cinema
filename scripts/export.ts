@@ -13,7 +13,7 @@ import { checkFrameCount, parseArgs, resolveFps } from './export/args.ts'
 import { createEncoder, EncodeError } from './export/encoder.ts'
 import { exportFramesJson } from './export/framesJson.ts'
 import { ffmpegArgs } from './export/ffmpegArgs.ts'
-import { partialPath } from './export/paths.ts'
+import { reservePartial } from './export/partial.ts'
 import { checkBrowser, checkFfmpeg, ffmpegCommand } from './export/preflight.ts'
 import { openSession, RenderError } from './export/session.ts'
 
@@ -75,8 +75,14 @@ async function framesJson(args: { dataset: string | null; fps: number | null; si
     err(`export: ${r.message}`)
     return r.code
   }
-  // Written beside the target and renamed, so a failed run never leaves a half file under the final name.
-  const partial = partialPath(args.out)
+  // Written to a temporary file this run created beside the target, then renamed, so a failed run never leaves a half file under the final name.
+  let partial: string
+  try {
+    partial = await reservePartial(args.out)
+  } catch (e) {
+    err(`export: could not write ${args.out}: ${(e as Error).message}`)
+    return 4
+  }
   try {
     await writeFile(partial, r.text)
     await rename(partial, args.out)
@@ -134,10 +140,18 @@ async function main(): Promise<number> {
     return 2
   }
 
+  let partial: string
+  try {
+    partial = await reservePartial(args.out)
+  } catch (e) {
+    err(`export: could not write ${args.out}: ${(e as Error).message}`)
+    await session.close()
+    return 4
+  }
   const encoder = createEncoder({
     ffmpeg: ff,
-    args: ffmpegArgs({ format: args.format, fps, out: args.out }),
-    partial: partialPath(args.out),
+    args: ffmpegArgs({ format: args.format, fps, partial }),
+    partial,
     final: args.out,
     spawn: spawn as never,
     fs: { rename, rm: (p) => rm(p, { force: true }) },

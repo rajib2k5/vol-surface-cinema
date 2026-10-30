@@ -7,10 +7,15 @@ export function extensionFor(format: Format): string {
   return format === 'frames-json' ? '.json' : `.${format}`
 }
 
-/** /a/demo.mp4 -> /a/demo.partial.mp4: ffmpeg still sees the real extension, and a failed run never leaves a file with the final name. */
-export function partialPath(out: string): string {
+/**
+ * /a/demo.mp4 + "7-ab" -> /a/.demo.7-ab.partial.mp4: a hidden file beside the output (same filesystem, so the final rename is atomic)
+ * with the real extension (so ffmpeg still sees .mp4 or .gif). The token makes the name one no user file is likely to have;
+ * reservePartial (partial.ts) creates it exclusively, so a clash is detected instead of overwritten.
+ */
+export function partialPath(out: string, token: string): string {
   const ext = path.extname(out)
-  return `${out.slice(0, out.length - ext.length)}.partial${ext}`
+  const stem = path.basename(out, ext)
+  return path.join(path.dirname(out), `.${stem}.${token}.partial${ext}`)
 }
 
 export function defaultSize(format: Format): { width: number; height: number } {

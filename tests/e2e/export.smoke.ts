@@ -9,7 +9,7 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { openSession } from '../../scripts/export/session.ts'
@@ -26,10 +26,15 @@ const cli = (args: string[], env: Record<string, string> = {}) =>
 try {
   // 1. Real export.
   const out = path.join(dir, 'smoke.mp4')
+  // A user file named like the old fixed partial path must survive the export untouched.
+  const lookalike = path.join(dir, 'smoke.partial.mp4')
+  writeFileSync(lookalike, 'USER DATA')
   const run = cli(['--format', 'mp4', '--dataset', 'synthetic-regime-story', '--fps', String(FPS), '--size', `${W}x${H}`, '--out', out])
   assert.equal(run.status, 0, `export exited ${run.status}\n${run.stderr}`)
   assert.ok(existsSync(out), 'output file exists')
-  assert.deepEqual(readdirSync(dir), ['smoke.mp4'], 'no .partial left behind')
+  assert.deepEqual(readdirSync(dir).sort(), ['smoke.mp4', 'smoke.partial.mp4'], 'no temporary file left behind')
+  assert.equal(readFileSync(lookalike, 'utf8'), 'USER DATA', 'a user file named like the old partial path is untouched')
+  rmSync(lookalike)
 
   const session = await openSession({ root, dataset: 'synthetic-regime-story', width: W, height: H, fps: FPS, gpu: false })
   try {
@@ -104,7 +109,7 @@ try {
   const bad = path.join(dir, 'bad.mp4')
   const unknown = cli(['--format', 'mp4', '--dataset', 'no-such-dataset', '--size', `${W}x${H}`, '--out', bad])
   assert.equal(unknown.status, 4, `unknown dataset should exit 4, got ${unknown.status}\n${unknown.stderr}`)
-  assert.ok(!existsSync(bad) && !existsSync(path.join(dir, 'bad.partial.mp4')), 'a failed export leaves no file')
+  assert.ok(!existsSync(bad) && !readdirSync(dir).some((f) => f.includes('.partial.')), 'a failed export leaves no file')
   assert.equal(cli(['--format', 'mp4', '--out', bad, '--size', '321x180']).status, 2, 'odd size exits 2')
   assert.equal(cli(['--format', 'mp4', '--size', `${W}x${H}`, '--out', bad], { FFMPEG: '/nonexistent/ffmpeg' }).status, 3, 'missing ffmpeg exits 3')
   assert.equal(cli(['--format', 'mp4', '--size', `${W}x${H}`, '--out', out]).status, 2, 'existing output without --force exits 2')
