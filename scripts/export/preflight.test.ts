@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkBrowser, checkFfmpeg, ffmpegCommand } from './preflight.ts'
+import { checkBrowser, checkDatasetKnown, checkFfmpeg, ffmpegCommand } from './preflight.ts'
 
 describe('ffmpegCommand', () => {
   it('uses the FFMPEG env var when set, else ffmpeg from PATH', () => {
@@ -34,5 +34,23 @@ describe('checkBrowser', () => {
     const r = checkBrowser('/cache/chromium', () => false)
     expect(r.ok).toBe(false)
     if (!r.ok) expect(r.message).toContain('npx playwright install chromium')
+  })
+})
+
+describe('checkDatasetKnown', () => {
+  const index = JSON.stringify({ datasets: [{ id: 'one', title: 'One', file: 'one.json' }, { id: 'two', title: 'Two', file: 'two.json' }] })
+  it('ok for a listed id, and for no id (the default is the first entry)', () => {
+    expect(checkDatasetKnown('two', index)).toEqual({ ok: true })
+    expect(checkDatasetKnown(null, index)).toEqual({ ok: true })
+  })
+  it('exit 2 for a well-formed id that is not listed, naming the id and the known ones', () => {
+    const r = checkDatasetKnown('three', index)
+    expect(r).toMatchObject({ ok: false, code: 2 })
+    if (!r.ok) expect(r.message).toMatch(/"three".*one, two/s)
+  })
+  it('exit 4 when index.json is missing, not JSON or invalid', () => {
+    expect(checkDatasetKnown('one', null)).toMatchObject({ ok: false, code: 4 })
+    expect(checkDatasetKnown('one', '{nope')).toMatchObject({ ok: false, code: 4 })
+    expect(checkDatasetKnown('one', '{"datasets": 3}')).toMatchObject({ ok: false, code: 4 })
   })
 })

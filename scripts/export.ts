@@ -14,7 +14,7 @@ import { createEncoder, EncodeError } from './export/encoder.ts'
 import { exportFramesJson } from './export/framesJson.ts'
 import { ffmpegArgs } from './export/ffmpegArgs.ts'
 import { reservePartial } from './export/partial.ts'
-import { checkBrowser, checkFfmpeg, ffmpegCommand } from './export/preflight.ts'
+import { checkBrowser, checkDatasetKnown, checkFfmpeg, ffmpegCommand } from './export/preflight.ts'
 import { openSession, RenderError } from './export/session.ts'
 
 const FRAME_TIMEOUT_MS = 10_000
@@ -106,6 +106,11 @@ async function main(): Promise<number> {
   if (args.format === 'frames-json') return framesJson(args)
 
   // 2. Preflight, before any browser starts.
+  const known = checkDatasetKnown(args.dataset, readData('index.json'))
+  if (!known.ok) {
+    err(`export: ${known.message}`)
+    return known.code
+  }
   const ff = ffmpegCommand(process.env)
   const f = checkFfmpeg(ff, (cmd, a) => spawnSync(cmd, a, { stdio: 'ignore', shell: false }))
   if (!f.ok) {

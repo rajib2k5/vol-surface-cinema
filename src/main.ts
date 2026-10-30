@@ -2,7 +2,7 @@
 import { DatasetError, loadDataset } from './lib/dataset.ts'
 import { createPlayer } from './lib/player.ts'
 import { noticeLines } from './lib/notice.ts'
-import { parseQuery } from './lib/query.ts'
+import { datasetProblem, parseQuery } from './lib/query.ts'
 import { createControls } from './render/controls.ts'
 import { createDatasetMenu } from './render/datasetMenu.ts'
 import { showError } from './render/errorPanel.ts'
@@ -14,6 +14,14 @@ async function boot(): Promise<void> {
   const stage = document.getElementById('stage') as HTMLElement
   const controlsHost = document.getElementById('controls') as HTMLElement
   const query = parseQuery(location.search)
+  const problem = datasetProblem(query)
+  if (problem !== null) {
+    // A bad id must not quietly fall back to the default dataset, in the live page or in an export.
+    if (query.export) document.documentElement.classList.add('export')
+    console.error(problem)
+    showError(stage, problem)
+    return
+  }
   if (query.export) {
     mountExport(stage, controlsHost, query)
     return

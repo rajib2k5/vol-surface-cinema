@@ -5,13 +5,16 @@
 //   - frame 0 has > 5% non-background pixels
 //   - frame k gives the same PNG sha256 on two renders (same page, and a fresh browser)
 //   - frames-json (M5) agrees with the page on the caption and the visible event pills of several frames, and has totalFrames frames
-//   - the CLI exits 4 for an unknown dataset and leaves no output, 3 without ffmpeg, 2 for bad arguments
+//   - the CLI exits 2 for an unknown dataset (before Chromium starts) and leaves no output, 3 without ffmpeg, 2 for bad arguments
+//   - the live page shows an error panel for a malformed ?dataset= and for a well-formed id that index.json does not list
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { preview } from 'vite'
+import { chromium } from 'playwright'
 import { openSession } from '../../scripts/export/session.ts'
 
 const root = path.resolve(import.meta.dirname, '../..')
@@ -108,7 +111,7 @@ try {
   // 4. Failure exits.
   const bad = path.join(dir, 'bad.mp4')
   const unknown = cli(['--format', 'mp4', '--dataset', 'no-such-dataset', '--size', `${W}x${H}`, '--out', bad])
-  assert.equal(unknown.status, 4, `unknown dataset should exit 4, got ${unknown.status}\n${unknown.stderr}`)
+  assert.equal(unknown.status, 2, `unknown dataset should exit 2, got ${unknown.status}\n${unknown.stderr}`)
   assert.ok(!existsSync(bad) && !readdirSync(dir).some((f) => f.includes('.partial.')), 'a failed export leaves no file')
   assert.equal(cli(['--format', 'mp4', '--out', bad, '--size', '321x180']).status, 2, 'odd size exits 2')
   assert.equal(cli(['--format', 'mp4', '--size', `${W}x${H}`, '--out', bad], { FFMPEG: '/nonexistent/ffmpeg' }).status, 3, 'missing ffmpeg exits 3')
@@ -116,7 +119,30 @@ try {
   const fjBad = path.join(dir, 'bad.json')
   assert.equal(cli(['--format', 'frames-json', '--dataset', 'no-such-dataset', '--out', fjBad]).status, 2, 'frames-json with an unknown dataset exits 2')
   assert.ok(!existsSync(fjBad), 'a failed frames-json export leaves no file')
-  console.log('ok: exit codes 2, 3 and 4 behave, no partial files left')
+  assert.match(unknown.stderr, /no-such-dataset.*not in index\.json/, 'the message names the dataset')
+  console.log('ok: exit codes 2 and 3 behave, no partial files left')
+
+  // 5. The live page must not fall back to the default dataset for a bad ?dataset=.
+  const server = await preview({ root, preview: { host: '127.0.0.1', port: 0, open: false } })
+  const browser = await chromium.launch({ headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+  try {
+    const base = server.resolvedUrls?.local[0] as string
+    const page = await browser.newPage()
+    const panel = async (query: string) => {
+      await page.goto(`${base}${query}`)
+      await page.waitForSelector('.error h2', { timeout: 15_000 })
+      return { title: await page.locator('.error h2').textContent(), imgs: await page.locator('.error img').count() }
+    }
+    const malformed = await panel('?dataset=%3Cimg%20src%3Dx%3E')
+    assert.match(malformed.title ?? '', /<img src=x>/, 'the malformed value is named, as text')
+    assert.equal(malformed.imgs, 0, 'the value is not parsed as markup')
+    const unlisted = await panel('?dataset=no-such-dataset')
+    assert.match(unlisted.title ?? '', /"no-such-dataset" is not in index\.json/)
+    console.log('ok: bad ?dataset= values show an error panel')
+  } finally {
+    await browser.close()
+    await server.close()
+  }
 } finally {
   rmSync(dir, { recursive: true, force: true })
 }
