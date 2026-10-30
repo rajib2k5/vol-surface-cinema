@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { parseIndex, parseSequence } from '../../src/lib/contract.ts'
 import { butterflyGridCheck, calendarGridCheck } from '../../src/lib/gridChecks.ts'
@@ -8,23 +7,19 @@ const dataUrl = (name: string) => new URL(`../../public/data/${name}`, import.me
 const text = readFileSync(dataUrl('optionsdx-spy-4dates.json'), 'utf8')
 const doc = JSON.parse(text)
 
-// SHA-256 of the shortest decimal text of each spot and VIX close in the source file. They are stored as
-// hashes so that this repository holds no Cboe number even in a test. A leak is any number token of the
-// committed file (in a value or inside a string) that hashes to one of these.
-const FORBIDDEN = new Set([
-  '88234b59c5816d49e9b8dd3c02ace2ed0e079c5eff5f148f9d91d70ae5a1029d',
-  '1bab76de8ed843496828ec3c3d1517451bd2c245b7042e67ad963382a5ac91ec',
-  '62cd0ddf9cd92a77333afd396da9bdb84def5edccc595cf920907f58266b17e3',
-  '708acd55076881095f6175e15f6c2367296e5dbb00b2a2497ef0a5d13d91ca85',
-  '32953521383c4e3f7424d1a94b0befa46db4a0925e62de6a083bc7339df91115',
-  '90b8cf4464aa0cc80023447609621286a0c81b79ce56885749afe54179c2f801',
-  'e0ef67a3bb3ef7248ab3dfac82c9fc38277c7b92f481f0dc89054cd11fb9e4ff',
-  '6978e2340a8503590a60b7d19aae46c4ea02a62986b91628d06ae0e35b011e0d',
-])
-const sha = (s: string) => createHash('sha256').update(s).digest('hex')
-const numberTokens = (t: string): string[] => t.match(/\d+(?:\.\d+)?/g) ?? []
-/** The number tokens of `t` whose hash is in `forbidden`. */
-const leaks = (t: string, forbidden: ReadonlySet<string>): string[] => numberTokens(t).filter((tok) => forbidden.has(sha(tok)))
+// The leak test reads the source file's spot and vix_close at test time. This repository holds none of those numbers,
+// not even as hashes (short decimals brute-force in a fraction of a second). Fresh clones have no source file: the test skips.
+const SOURCE = process.env.VSC_SOURCE_FRAMES ?? '/home/rajib2k5/dev/vol-strategy-backtester/app/public/data/surface_frames.json'
+const sourceAvailable = existsSync(SOURCE)
+const NUMBER = /\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g
+/** Number tokens of `t` as canonical values, so 1234.500 and 1234.5 are the same number. */
+const numberTokens = (t: string): number[] => (t.match(NUMBER) ?? []).map(Number)
+/** The number tokens of `t` that equal one of `forbidden`. */
+const leaks = (t: string, forbidden: ReadonlySet<number>): number[] => numberTokens(t).filter((n) => forbidden.has(n))
+function sourceNumbers(): Set<number> {
+  const src = JSON.parse(readFileSync(SOURCE, 'utf8')) as { frames: { spot: number; vix_close: number }[] }
+  return new Set(src.frames.flatMap((f) => [f.spot, f.vix_close]))
+}
 
 function keysDeep(v: unknown, out = new Set<string>()): Set<string> {
   if (Array.isArray(v)) v.forEach((x) => keysDeep(x, out))
@@ -49,17 +44,18 @@ describe('the committed real dataset (public/data/optionsdx-spy-4dates.json)', (
     for (const banned of ['spot', 'vix_close', 'atm_iv_30d', 'expiries_used']) expect(keys.has(banned)).toBe(false)
     for (const f of doc.frames) expect(Object.keys(f).sort()).toEqual(['cell_flags', 'date', 'iv', 'label', 'quoted_share'])
   })
-  it('holds none of the spot or VIX numbers of the source file, as a value or inside any string', () => {
+  it.skipIf(!sourceAvailable)(`holds none of the spot or VIX numbers of the source file (${SOURCE}), as a value or inside any string`, () => {
+    const forbidden = sourceNumbers()
+    expect(forbidden.size).toBeGreaterThanOrEqual(8) // the source really supplied the numbers
     expect(numberTokens(text).length).toBeGreaterThan(1000) // the scan really covered the grids
-    expect(leaks(text, FORBIDDEN)).toEqual([])
-    expect(FORBIDDEN.size).toBe(8)
+    expect(leaks(text, forbidden)).toEqual([])
   })
-  it('the leak check can fail: it reports a token of the file once that token is in the forbidden set', () => {
-    // Control for the test above, with no Cboe or Yahoo number: the "forbidden" token is read from the committed file itself.
-    const tokens = numberTokens(text)
-    const probe = tokens[Math.floor(tokens.length / 2)]
-    expect(leaks(text, new Set([sha(probe)]))).toContain(probe)
-    expect(leaks(text, new Set([sha('not-a-number-token')]))).toEqual([])
+  it('the leak check can fail: a source value injected into a copy of the text is caught, in any spelling', () => {
+    // Control for the test above, with no Cboe or Yahoo number: the "source value" is made up.
+    const forbidden = new Set([1234.5, 0.0777])
+    expect(leaks(text, forbidden)).toEqual([])
+    expect(leaks(`${text} {"note": "close 1234.500"}`, forbidden)).toEqual([1234.5])
+    expect(leaks(text.replace(/\]\s*$/, '') + ' 0.0777', forbidden)).toEqual([0.0777])
   })
   it('stays small: derived grid values only', () => {
     expect(Buffer.byteLength(text)).toBeLessThan(100_000)

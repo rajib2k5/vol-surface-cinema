@@ -39,7 +39,13 @@ repository. The committed file is about 43 KB.
 `atm_iv_30d`. The player does not use them, so they are not imported. Yahoo's terms allow personal use. Cboe's website terms need Cboe's prior
 written consent to publish or distribute its data. The VIX closes are therefore left out, and no event or label text quotes a Cboe figure.
 A test (`scripts/import/committed.test.ts`) scans the committed file for the source's spot and VIX numbers, as values and inside strings. It
-holds them as SHA-256 hashes, so even the test file carries no Cboe number.
+reads the source's `spot` and `vix_close` at test time from `surface_frames.json` in vol-strategy-backtester (override the path with the
+`VSC_SOURCE_FRAMES` environment variable) and compares them as numbers, so `9.140` and `9.14` match. The test file holds no source value, not even
+as a hash. On a fresh clone the source file is absent and that test is skipped, with the reason in its name.
+
+**Hashes in history.** An earlier version of that test held unsalted SHA-256 hashes of those 8 values. Commit `5bfa0c0` still contains them.
+Short decimals brute-force in a fraction of a second, so the hashes are reversible and that history effectively contains the 8 values.
+Git history is never rewritten (owner rule), so they stay there.
 
 **First commit anywhere.** In vol-strategy-backtester this file is untracked: it is not in `git ls-files` and not in origin/main `35cb682`.
 Committing it here is the first time these values enter any git history. This repository is private. Whether and when it becomes public is the
