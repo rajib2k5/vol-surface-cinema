@@ -1,0 +1,9 @@
+{
+  "datasets": [
+    {
+      "id": "synthetic-regime-story",
+      "title": "Synthetic regime story: calm, spike, FOMC, recovery",
+      "file": "synthetic-regime-story.json"
+    }
+  ]
+}

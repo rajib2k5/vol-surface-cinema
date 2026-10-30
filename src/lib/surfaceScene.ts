@@ -45,8 +45,8 @@ export const AXIS_SEGMENTS = new Float32Array([
 
 /**
  * The point the camera orbits around, in unit-box coordinates: the middle of x and z, and below the
- * middle of y (0.35, not 0.5) because the surface sits low in the box. IV is normalised to its own
- * min and max, and one steep short-dated put wing sets the maximum, so the shipped surface has a
- * mean normalised height of about 0.23.
+ * middle of y (0.25, not 0.5) because the surface sits low in the box. IV is scaled to the sequence-wide
+ * min and max, and the steep short-dated put wing of the volatility spike sets the maximum, so the synthetic story has a
+ * mean normalised height of about 0.14.
  */
-export const ORBIT_TARGET: Vec3 = [0.5, 0.35, 0.5]
+export const ORBIT_TARGET: Vec3 = [0.5, 0.25, 0.5]
