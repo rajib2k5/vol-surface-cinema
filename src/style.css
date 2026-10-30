@@ -1,0 +1,54 @@
+/* Font: a system stack on purpose. No network font, so the page and the headless export work offline. */
+:root {
+  --bg: #0f131a;
+  --panel: #1a1f29;
+  --fg: #e8ecf2;
+  --muted: #9aa3b2;
+  --accent: #5598e7;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); }
+#app { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--panel);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.stage canvas { position: absolute; inset: 0; display: block; }
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.axis { position: absolute; left: 0; top: 0; visibility: hidden; font-size: 12px; color: var(--muted); white-space: nowrap; font-family: var(--mono); }
+.axis-title { color: var(--fg); font-family: var(--font); }
+.badge { position: absolute; left: 12px; top: 10px; font-size: 12px; color: var(--muted); max-width: 70%; }
+.caption { position: absolute; right: 16px; top: 8px; font-size: 22px; font-family: var(--mono); letter-spacing: 0.02em; }
+.pill {
+  position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%);
+  padding: 6px 14px; border-radius: 999px; background: #184f95; color: #fff; font-size: 15px; opacity: 0;
+}
+.pill.shock { background: #b3402e; }
+.pill.policy { background: #6b4fb3; }
+.pill.recovery { background: #2f7d4f; }
+.fallback { position: absolute; inset: 0; }
+.fallback canvas { width: 100%; height: 100%; }
+.fallback p { position: absolute; left: 12px; bottom: 8px; margin: 0; font-size: 12px; color: var(--muted); }
+.error { padding: 16px; border: 1px solid #b3402e; border-radius: 8px; background: #2a1511; }
+.error h2 { margin: 0 0 8px; font-size: 16px; }
+.error ul { margin: 0; padding-left: 20px; font-family: var(--mono); font-size: 13px; }
+.controls { margin-top: 10px; display: grid; gap: 8px; }
+.controls .row { display: flex; gap: 10px; align-items: center; }
+.controls input[type=range] { flex: 1; }
+.controls button { background: #232a37; color: var(--fg); border: 1px solid #343d4e; border-radius: 6px; padding: 6px 12px; font: inherit; cursor: pointer; }
+.controls button:focus-visible, .controls input:focus-visible { outline: 2px solid var(--accent); }
+.controls .frame { font-family: var(--mono); font-size: 12px; color: var(--muted); min-width: 9ch; }
+.picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.picker button { font-size: 12px; padding: 3px 8px; }
+.picker button.event { border-color: var(--accent); }
+.dataset { font-size: 13px; color: var(--muted); }
+/* Export mode: nothing may animate or transition; the frame index is the only clock. */
+.export, .export * { transition: none !important; animation: none !important; }
+.export body, body.export { background: #fff; }
+.export .stage { border-radius: 0; }
