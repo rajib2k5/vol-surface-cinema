@@ -488,7 +488,8 @@ Gaps found while building, each resolved with the simplest option consistent wit
   `--format frames-json` is parsed but exits 2 with "not implemented yet (M5)". ffmpeg gets `-y` so a stale `.partial` cannot make it
   prompt. The partial file is `<stem>.partial.<ext>` (so ffmpeg still sees `.mp4` or `.gif`); `.gitignore` has `*.partial.*`.
   The CLI reads `playback.fps` from `dist/data` to pick the MP4 fps before the page loads. `npm run test:e2e` builds first.
-- **Measured cost** replaced the §15 estimate. The README GIF is `docs/media/demo.gif` (800x450, 25 fps, 375 frames, 3.0 MB).
+- **Measured cost** replaced the §15 estimate. The README GIF is `docs/media/demo.gif` (800x450, 25 fps, 375 frames; 3.0 MB at M3, 2.3 MB when remade with the header band).
+  `docs/media/spy-4dates.gif` is the real set (`--fps 10`, 101 frames, 0.9 MB).
 
 ## Implementation notes (M4)
 
