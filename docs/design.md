@@ -510,6 +510,10 @@ Gaps found while building, each resolved with the simplest option consistent wit
   dataset's own `source`, both outside `#stage` and removed in export mode. The badge, inside the stage, is always on screen.
 - **Event pills moved down** (top 66px, was 12px): the long caption "2018-02-05 → 2020-03-16 (interpolated)" ran under the centred pill.
   The README GIF was made before this and still shows the old position.
+- **Header band (after M5).** The badge, date caption, extrapolation note and event pill now sit in a fixed-height band at the top of the stage
+  (`src/render/stageLayout.ts`: 84, 74 or 96 px by stage width), and the 3D view gets only the area below it. This replaces the absolute
+  positions above: at 800x450 the 3-line badge of the real set had covered the top IV axis label. Checked by screenshots at 1280x720, 800x450
+  and a 375 px phone viewport, with no box overlap between the overlay and the axis labels.
 - **No Cboe or Yahoo number is committed, even in a test.** The committed-file test holds the source's spot and VIX numbers as SHA-256 hashes.
 - **Size.** The committed real file is about 43 KB (the §15 estimate of 15 to 25 KB assumed compact rows).
 

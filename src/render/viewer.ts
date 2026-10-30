@@ -13,6 +13,7 @@ import { createHeatmap, type HeatmapView } from './heatmap.ts'
 import { createOverlay, type Overlay } from './overlay.ts'
 import { createScene, type SurfaceScene } from './scene.ts'
 import { detectWebGL } from './webgl.ts'
+import { applyStageLayout, plotSize } from './stageLayout.ts'
 
 export interface ViewerOptions {
   stage: HTMLElement
@@ -59,10 +60,15 @@ export function createViewer(o: ViewerOptions): Viewer {
   let width = stage.clientWidth || 1
   let height = stage.clientHeight || 1
   let lastN = 0
+  /** The stage minus its header band: the size the 3D view and the heatmap get. */
+  function plot(): { width: number; height: number } {
+    applyStageLayout(stage, width)
+    return plotSize(width, height)
+  }
 
   function startHeatmap(): void {
     heat = createHeatmap(stage, sequence.grid.k, sequence.grid.dte, ivExtent)
-    heat.resize(width, height)
+    heat.resize(plot().width, plot().height)
   }
 
   function onContextLost(): void {
@@ -79,7 +85,7 @@ export function createViewer(o: ViewerOptions): Viewer {
   if (detectWebGL()) {
     try {
       scene = createScene({ stage, moneyness: sequence.grid.k, dte: sequence.grid.dte, ivExtent, exportMode, onContextLost })
-      scene.resize(width, height)
+      scene.resize(plot().width, plot().height)
     } catch (e) {
       if (exportMode) throw new Error(`WebGL failed to start: ${(e as Error).message}`)
       scene = null
@@ -111,8 +117,9 @@ export function createViewer(o: ViewerOptions): Viewer {
     resize(w, h) {
       width = w
       height = h
-      scene?.resize(w, h)
-      heat?.resize(w, h)
+      const p = plot()
+      scene?.resize(p.width, p.height)
+      heat?.resize(p.width, p.height)
       show(lastN)
     },
     setControlsEnabled(enabled) {
