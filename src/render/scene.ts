@@ -26,25 +26,12 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { axisLabels, buildTopology, writeHeights, type AxisLabel, type Extent, type SurfaceExtent } from '../lib/surfaceGeometry.ts'
 import { AXIS_SEGMENTS, ORBIT_TARGET } from '../lib/surfaceScene.ts'
+import { CAMERA_START, cameraPosition } from '../lib/orbit.ts'
 import { BASE_FOV, fovForAspect } from '../lib/framing.ts'
 import { labelTransform, ndcToPixels } from '../lib/labelProjection.ts'
 
 // Grey that stays visible on both a light and a dark card.
 const GUIDE_GREY = '#8a8f98'
-/** SurfaceHero's camera start. It fixes the orbit radius, height and starting azimuth a0. */
-export const CAMERA_START: [number, number, number] = [1.9, 1.35, 2.5]
-
-/** Camera position for a given azimuth. Keeps the start height and horizontal radius. */
-export function cameraPosition(azimuth: number): [number, number, number] {
-  const dx = CAMERA_START[0] - ORBIT_TARGET[0]
-  const dz = CAMERA_START[2] - ORBIT_TARGET[2]
-  const radius = Math.hypot(dx, dz)
-  return [ORBIT_TARGET[0] + radius * Math.sin(azimuth), CAMERA_START[1], ORBIT_TARGET[2] + radius * Math.cos(azimuth)]
-}
-
-/** The starting azimuth a0, measured from +z toward +x. */
-export const AZIMUTH_0 = Math.atan2(CAMERA_START[0] - ORBIT_TARGET[0], CAMERA_START[2] - ORBIT_TARGET[2])
-
 export interface SceneOptions {
   stage: HTMLElement
   moneyness: readonly number[]
@@ -54,6 +41,7 @@ export interface SceneOptions {
   exportMode: boolean
   onContextLost: () => void
 }
+
 
 export interface SurfaceScene {
   canvas: HTMLCanvasElement

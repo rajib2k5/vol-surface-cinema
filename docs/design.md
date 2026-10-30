@@ -460,3 +460,26 @@ Rajib Bahar):
 
 The heatmap fallback is a rewrite of its React Heatmap. The SSVI formulation follows its `src/volbt/illustrative.py`.
 `CREDITS.md` lists each file with its source path and commit (`35cb682`).
+
+## Implementation notes (M0 to M3)
+
+Gaps found while building, each resolved with the simplest option consistent with the design.
+
+- **GJ theorems checked.** Theorems 4.1 and 4.2 of arXiv 1204.0646 were read in the paper's text. The statements in §5.1 match.
+- **npm peer-dependency crash.** `npm install` of the pinned set (vitest 4.1.12) fails inside npm 10.9.8's arborist
+  (`Cannot read properties of null (reading 'edgesOut')`). `.npmrc` sets `legacy-peer-deps=true`, and `package-lock.json` is committed.
+  A fresh clone installs with plain `npm install`.
+- **One tsconfig.** `tsconfig.json` uses `module`/`moduleResolution` `nodenext` for `src`, `scripts`, `tests` and `vite.config.ts` alike, so
+  `tsc --noEmit -p .` checks everything and no `tsconfig.node.json` is needed. There is no lint step in the design, so `verify` has none.
+- **Font.** The page uses a system font stack (`--font` in `src/style.css`). No Inter file was vendored: none was available under the
+  100 KB limit with its licence, and a network font would break the offline export. Nothing is loaded at runtime from a CDN.
+- **`heatmapCells` lives in `src/lib/heatmapCells.ts`**, not `render/heatmap.ts`, so that `src/lib` stays the home of everything pure and tested.
+  `render/heatmap.ts` only draws.
+- **Story constants.** `A = 0.2`, `etaShock = 0.8`, FOMC `J = 0.0005`, shock decay 8 business days. They give a 12.1% to 97.5% IV range,
+  and the §5.4 checks pass on them (dense in-between check included, no extra intermediate dates were needed).
+- **Data size.** The committed story is about 360 KB, not the 150 to 220 KB estimated in §15: `JSON.stringify(doc, null, 2)` puts every number
+  on its own line. It is under the 1 MB data limit.
+- **`ORBIT_TARGET` y is 0.25** (was 0.35). The fixed extent makes the calm surface sit lower: mean normalised height is about 0.14.
+- **`writeHeights` clamps** an IV outside the extent to the edge of the box, so a hand-set `display.iv_range` cannot push the mesh out of the unit box.
+- **Autoplay.** The live page starts playing on load. `play()` while paused on the last frame of a non-looping player restarts at 0 (as from `'ended'`).
+- **`buildSurfaceGeometry`** is kept as a thin convenience over `buildTopology` + `writeHeights` (used by tests and one-off callers).
