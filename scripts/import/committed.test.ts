@@ -22,6 +22,9 @@ const FORBIDDEN = new Set([
   '6978e2340a8503590a60b7d19aae46c4ea02a62986b91628d06ae0e35b011e0d',
 ])
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
+const numberTokens = (t: string): string[] => t.match(/\d+(?:\.\d+)?/g) ?? []
+/** The number tokens of `t` whose hash is in `forbidden`. */
+const leaks = (t: string, forbidden: ReadonlySet<string>): string[] => numberTokens(t).filter((tok) => forbidden.has(sha(tok)))
 
 function keysDeep(v: unknown, out = new Set<string>()): Set<string> {
   if (Array.isArray(v)) v.forEach((x) => keysDeep(x, out))
@@ -47,16 +50,16 @@ describe('the committed real dataset (public/data/optionsdx-spy-4dates.json)', (
     for (const f of doc.frames) expect(Object.keys(f).sort()).toEqual(['cell_flags', 'date', 'iv', 'label', 'quoted_share'])
   })
   it('holds none of the spot or VIX numbers of the source file, as a value or inside any string', () => {
-    const tokens = text.match(/\d+(?:\.\d+)?/g) ?? []
-    expect(tokens.length).toBeGreaterThan(1000) // the scan really covered the grids
-    const leaked = tokens.filter((t) => FORBIDDEN.has(sha(t)))
-    expect(leaked).toEqual([])
+    expect(numberTokens(text).length).toBeGreaterThan(1000) // the scan really covered the grids
+    expect(leaks(text, FORBIDDEN)).toEqual([])
     expect(FORBIDDEN.size).toBe(8)
   })
-  it('the hash check can fail: a known token does hash into the forbidden set', () => {
-    // Control for the test above. 14.5 is the VIX close of the last source date.
-    expect(FORBIDDEN.has(sha('14.5'))).toBe(true)
-    expect(FORBIDDEN.has(sha('0.5'))).toBe(false)
+  it('the leak check can fail: it reports a token of the file once that token is in the forbidden set', () => {
+    // Control for the test above, with no Cboe or Yahoo number: the "forbidden" token is read from the committed file itself.
+    const tokens = numberTokens(text)
+    const probe = tokens[Math.floor(tokens.length / 2)]
+    expect(leaks(text, new Set([sha(probe)]))).toContain(probe)
+    expect(leaks(text, new Set([sha('not-a-number-token')]))).toEqual([])
   })
   it('stays small: derived grid values only', () => {
     expect(Buffer.byteLength(text)).toBeLessThan(100_000)
