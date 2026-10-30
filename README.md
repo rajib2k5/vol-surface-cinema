@@ -1,79 +1,147 @@
 # vol-surface-cinema
 
-An animated 3D implied-volatility surface that plays date by date, for slide decks and social posts.
-The default demo is a synthetic SSVI surface with a fictional regime story (calm, volatility spike, FOMC, recovery).
+An animated 3D implied-volatility surface that plays date by date, with deterministic GIF and MP4 export.
 
-![demo](docs/media/demo.gif)
+![A synthetic implied-volatility surface that changes from calm to a spike and back](docs/media/demo.gif)
 
-Page: play, pause, scrub, jump to a date or event. Export: deterministic headless GIF or MP4. The page works offline:
-no font or script is loaded from a network.
+The data in this GIF is synthetic. It is not market data. It is not investment advice.
 
-## Run
+## Quick start
+
+You need Node 22. Install the packages once.
 
     npm install
-    npm run dev       # http://localhost:5173
-    npm run build     # static site in dist/ (base './')
-    npm run verify    # tests + typecheck + build
 
-Keys: Space plays or pauses, Left and Right step one frame.
+To run the page with live reload, use the dev server.
 
-## Export (GIF or MP4)
+    npm run dev
 
-One-time setup: `npx playwright install chromium`. ffmpeg comes from your package manager (or set `FFMPEG` to its path).
+Open `http://localhost:5173`. The page starts to play at once.
+
+To make a static site, build it. Then serve the build.
+
+    npm run build
+    npm run preview
+
+The build goes to `dist/`. Open `http://localhost:4173`. The page works offline. It loads no font and no script from a network.
+
+## Controls
+
+- Play or Pause button: starts or stops the animation.
+- Scrubber: drag it to go to any frame.
+- Date buttons: jump to a date. A date with an event also shows the event name.
+- Dataset menu: select a dataset. The page reloads with that dataset.
+
+Keys:
+
+- `Space` plays or pauses.
+- `ArrowLeft` goes back one frame.
+- `ArrowRight` goes forward one frame.
+
+Drag the surface to rotate it while the animation is paused.
+
+The page reads these query parameters:
+
+| Parameter | Value | Meaning |
+|---|---|---|
+| `dataset` | a dataset id | Selects the dataset. The id must be in `public/data/index.json`. |
+| `fps` | 1 to 60 | Sets the frame rate. |
+| `export` | `1` | Starts the export mode, with no controls. The export command uses this mode. |
+| `w`, `h` | 16 to 4096 | Set the size of the stage in export mode. |
+
+An invalid value is ignored.
+
+## Export to GIF or MP4
+
+Install the browser for the export once.
+
+    npx playwright install chromium
+
+The export also needs ffmpeg. Install it with your package manager. If ffmpeg is not on the path, set the `FFMPEG` environment variable to its path.
+
+Do the export with this command. The directory of `--out` must exist.
 
     npm run export -- --format mp4 --dataset synthetic-regime-story --out demo.mp4
-    npm run export -- --format gif --dataset synthetic-regime-story --out demo.gif
 
-Options: `--fps N` (1..60; GIF: 10, 20, 25 or 50), `--size WxH` (even, 16..4096; default 1280x720 MP4, 800x450 GIF),
-`--force` (overwrite), `--max-frames N` (default 10000), `--gpu` (use the GPU instead of SwiftShader).
-Exit codes: 2 bad arguments, 3 ffmpeg or browser or build missing, 4 render failure, 5 encode failure.
+This example makes a small GIF of the real dataset.
 
-Frame `n` depends only on (dataset, n, fps, size). Re-running gives the same PNG frames on the same machine;
-the MP4 and GIF bytes are not promised to be identical.
-Measured here (SwiftShader, 20 cores): 0.17 s per frame at 1280x720 and at 800x450, so the 450-frame story takes about 75 s as MP4.
+    npm run export -- --format gif --dataset optionsdx-spy-4dates --fps 10 --size 640x360 --out spy.gif
+
+The command builds the page first. Then it draws each frame in a headless browser and sends the frames to ffmpeg.
+
+| Flag | Meaning |
+|---|---|
+| `--format` | `gif`, `mp4` or `frames-json`. |
+| `--dataset` | A dataset id. The default is the first dataset in the index. |
+| `--fps` | 1 to 60. For a GIF, use 10, 20, 25 or 50. The default is 25 for a GIF, and the `playback.fps` of the dataset for an MP4. |
+| `--size` | Width and height, as `WxH`. Both must be even, from 16 to 4096. The default is 1280x720 for MP4 and 800x450 for GIF. |
+| `--out` | The output file. This flag is required. The extension must match the format. |
+| `--force` | Overwrite an existing output file. Without this flag, the command stops if the file exists. |
+| `--max-frames` | The most frames to render. The default is 10000. |
+| `--gpu` | Use the GPU. By default, the export uses the software renderer SwiftShader. |
+
+The exit codes are 2 (bad arguments), 3 (ffmpeg, browser or build missing), 4 (render failure) and 5 (encode failure).
+
+Frame `n` depends only on the dataset, `n`, the frame rate and the size. The same command gives the same frames on the same machine. The bytes of the MP4 or GIF can differ.
+
+## The data
+
+The default dataset is synthetic. The code `src/synth` generates it from a seeded SSVI model. The model has a fictional story with the dates in 2030: a calm period, a volatility spike, an FOMC decision and a recovery. The file is `public/data/synthetic-regime-story.json`.
+
+The optional dataset is real. The file `public/data/optionsdx-spy-4dates.json` holds implied-volatility grids of SPY for four dates. It is derived from OptionsDX end-of-day quotes. To see it, select it in the dataset menu or open `?dataset=optionsdx-spy-4dates`.
+
+The four dates are months or years apart. Each frame between two dates is interpolated. It is not observed, and the caption says so. The page also shows the share of cells that were extrapolated.
+
+This is not market data for trading. This is not investment advice. The real grids are shown as they were exported. They are not repaired for arbitrage, and some of them have butterfly violations.
+
+The licence of the real data is not the licence of the code. Read [DATA.md](DATA.md) for the sources and the terms.
+
+## How the maths is checked
+
+The synthetic surface must not allow arbitrage. Arbitrage is a risk-free profit. Two kinds apply to a surface of implied volatility:
+
+- Calendar arbitrage. The total variance (the implied variance times the time to expiry) must not decrease when the expiry is later.
+- Butterfly arbitrage. The implied density of the price must not be negative. A negative density means that a butterfly spread has a negative price.
+
+The checks follow Gatheral and Jacquier (2014). The butterfly check has two parts. The function `g` must be at least zero at each strike. The slope of the right wing must be less than 2.
+
+The tests check each date of the story, and 101 in-between surfaces for each pair of dates. Two independent checks validated the formulas. One check read the paper. The other check ran probes, and each probe fails on a changed formula. The review found one error. The first version of the butterfly check did not test the slope of the right wing. This is corrected. See [docs/validation/report.md](docs/validation/report.md).
+
+The checks cover the synthetic data only. They do not cover the real dataset.
+
+## Blender (optional)
+
+The script `tools/blender/render_surface_sequence.py` can render the animation in Blender. It reads the file that the `frames-json` export makes.
+
+Blender was not run for this project. Only the pure-Python half of the script is tested. This half checks the JSON file and computes the heights, the captions and the camera. The code that uses Blender (`bpy`) is not tested. Expect small errors on the first run in Blender.
+
+## The data-file format
+
+Each dataset is a JSON file of the type `surface-sequence` version 1. The file holds:
+
+- a grid of log-moneyness and days to expiry
+- a list of frames, with one IV grid for each date
+- events, playback settings and a source notice
+
+The page rejects a file that does not match the format. The full contract is in section 7 of [docs/design.md](docs/design.md).
 
 ## Tests
 
-    npm run test:py   # pytest, pure half of the Blender script (needs uv)
-    npm test          # vitest: timeline, interpolation, SSVI arbitrage checks, contract, export helpers
-    npm run test:e2e  # Playwright + ffmpeg smoke test of the export pipeline (needs the setup above)
-    npm run gen:data  # regenerate public/data/synthetic-regime-story.json (a drift test pins it)
+Run all the checks with this command. It runs the unit tests, the type check, the build and the Python tests.
 
-## Data
+    npm run verify
 
-`public/data/index.json` lists the datasets; `?dataset=<id>` must match an id in it. The format is
-`surface-sequence` v1 (see `docs/design.md` §7). The synthetic story is generated from a seeded SSVI model
-(`src/synth`), checked against Gatheral and Jacquier's no-arbitrage conditions, and committed.
+The Python tests need [uv](https://docs.astral.sh/uv/).
 
-## Real dataset (optional)
+Run the end-to-end test of the export separately. It needs the browser and ffmpeg from the export section.
 
-`public/data/optionsdx-spy-4dates.json` holds SPY implied-vol grids for four real dates (2017-11-03, 2018-02-05, 2020-03-16, 2023-06-15),
-derived from OptionsDX end-of-day quotes via Kaggle. It is not the default and **is not covered by the MIT licence**: read [DATA.md](DATA.md).
-Pick it from the dataset menu or open `?dataset=optionsdx-spy-4dates`. The four dates are months to years apart, so every frame between
-them is interpolated, not observed, and the caption says so. The page shows the share of cells that were extrapolated. The grids are shown
-as exported: they have butterfly violations on a finite-difference screen (DATA.md has the numbers).
+    npm run test:e2e
 
-    npm run import:real -- --in <path to vol-strategy-backtester/app/public/data/surface_frames.json>   # one-off, read only
+## Credits
 
-## Blender (optional, not yet run in Blender)
+- Parts of the geometry, colour and framing code come from [vol-strategy-backtester](https://github.com/rajib2k5/vol-strategy-backtester). [CREDITS.md](CREDITS.md) lists each file.
+- The SSVI model and the no-arbitrage conditions are from Gatheral and Jacquier, "Arbitrage-free SVI volatility surfaces", Quantitative Finance, 2014 (arXiv:1204.0646).
 
-`tools/blender/render_surface_sequence.py` renders the animation in Blender as a PNG sequence, one shape key per frame.
-**It has never been run in Blender**: Blender is not installed where it was written. Only its pure half (JSON checks, frame to
-vertex heights, caption and shape-key schedules, camera maths, arguments) is tested, by pytest, without bpy. The Blender-side functions
-are untested. Expect small API fixes on the first run and look at the first frames by eye.
+## Licence
 
-The page, the export CLI and Blender share one timeline: the exporter bakes every frame's IV grid, caption and events to JSON, and
-the Blender script only reads that.
-
-    npm run export -- --format frames-json --dataset synthetic-regime-story --out frames.json
-    blender --background --python tools/blender/render_surface_sequence.py --python-exit-code 1 -- \
-        --data frames.json --out-dir out/frames            # PNGs frame_0001.png, ...; join them with ffmpeg
-
-Options: `--every N` (render every Nth baked frame at 1/N the frame rate), `--samples N`, `--resolution WxH`.
-The script refuses more than 2000 frames (one shape key each) and suggests the `--every` that fits. The page's camera orbit is not baked.
-The Python tests need [uv](https://docs.astral.sh/uv/): `npm run test:py` (part of `npm run verify`).
-
-## Docs
-
-`docs/design.md` is the build spec, `docs/adr/0001-architecture.md` the decisions, `CREDITS.md` the copied code.
-Licence: MIT.
+The code is under the MIT licence (see [LICENSE](LICENSE)). The data follows [DATA.md](DATA.md). The real dataset is not under the MIT licence.
