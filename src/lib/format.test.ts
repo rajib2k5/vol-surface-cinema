@@ -1,3 +1,4 @@
+// Adapted from rajib2k5/vol-strategy-backtester (35cb682), MIT.
 import { describe, it, expect } from 'vitest'
 import { fmt, pct } from './format.ts'
 

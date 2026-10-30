@@ -1,3 +1,4 @@
+// Adapted from rajib2k5/vol-strategy-backtester (35cb682), MIT.
 import { describe, expect, it } from 'vitest'
 import { labelTransform, ndcToPixels } from './labelProjection.ts'
 
