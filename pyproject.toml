@@ -1,0 +1,16 @@
+[project]
+name = "vol-surface-cinema-tools"
+version = "0.1.0"
+description = "Python side of vol-surface-cinema: the optional Blender script and its pytest suite. The app itself is JavaScript."
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest==8.4.2"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tools/blender"]

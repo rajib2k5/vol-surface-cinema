@@ -1,0 +1,14 @@
+{
+  "datasets": [
+    {
+      "id": "synthetic-regime-story",
+      "title": "Synthetic regime story: calm, spike, FOMC, recovery",
+      "file": "synthetic-regime-story.json"
+    },
+    {
+      "id": "optionsdx-spy-4dates",
+      "title": "SPY implied vols on four real dates (OptionsDX-derived)",
+      "file": "optionsdx-spy-4dates.json"
+    }
+  ]
+}

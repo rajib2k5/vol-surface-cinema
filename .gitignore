@@ -8,3 +8,5 @@ __pycache__/
 coverage/
 test-results/
 playwright-report/
+*.partial.*
+.pytest_cache/
