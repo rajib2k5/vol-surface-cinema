@@ -13,24 +13,24 @@ describe('heatmapCells', () => {
       [0, 50, 100, 50], [100, 50, 100, 50], [200, 50, 100, 50],
     ])
   })
-  it('colour is the ramp at (iv - lo) / (hi - lo): min IV is the light end, max the dark end', () => {
+  it('colour is the ramp at (iv - lo) / (hi - lo): min IV is the viridis start, max the viridis end', () => {
     const css = (t: number) => {
       const [r, g, b] = rampSrgb(t)
       return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`
     }
-    expect(cells[0].css).toBe('rgb(134, 182, 239)') // #86b6ef
+    expect(cells[0].css).toBe('rgb(68, 1, 84)') // viridis(0) = #440154
     expect(cells[0].css).toBe(css(0))
-    expect(cells[4].css).toBe('rgb(24, 79, 149)') // iv 0.6 -> #184f95
+    expect(cells[4].css).toBe('rgb(253, 231, 37)') // iv 0.6 -> viridis(1) = #fde725
     expect(cells[1].css).toBe(css(0.25))
   })
   it('clamps an IV outside the extent to the ends of the ramp', () => {
     const c = heatmapCells([[0.1, 0.9]], [0.2, 0.6], 20, 10)
-    expect(c[0].css).toBe('rgb(134, 182, 239)')
-    expect(c[1].css).toBe('rgb(24, 79, 149)')
+    expect(c[0].css).toBe('rgb(68, 1, 84)')
+    expect(c[1].css).toBe('rgb(253, 231, 37)')
   })
   it('a degenerate extent colours everything with the ramp start without NaN', () => {
     const c = heatmapCells([[0.2, 0.2]], [0.2, 0.2], 20, 10)
-    expect(c.every((x) => x.css === 'rgb(134, 182, 239)')).toBe(true)
+    expect(c.every((x) => x.css === 'rgb(68, 1, 84)')).toBe(true)
   })
   it('an empty grid gives no cells', () => {
     expect(heatmapCells([], [0, 1], 10, 10)).toEqual([])

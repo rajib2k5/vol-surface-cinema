@@ -485,8 +485,10 @@ Gaps found while building, each resolved with the simplest option consistent wit
 - **Autoplay.** The live page starts playing on load. `play()` while paused on the last frame of a non-looping player restarts at 0 (as from `'ended'`).
 - **`buildSurfaceGeometry`** is kept as a thin convenience over `buildTopology` + `writeHeights` (used by tests and one-off callers).
 - **Export (M3).** `scripts/export/session.ts` (Vite `preview()` plus Playwright) is shared by the CLI and `tests/e2e/export.smoke.ts`.
-  `--format frames-json` is parsed but exits 2 with "not implemented yet (M5)". ffmpeg gets `-y` so a stale `.partial` cannot make it
-  prompt. The partial file is `<stem>.partial.<ext>` (so ffmpeg still sees `.mp4` or `.gif`); `.gitignore` has `*.partial.*`.
+  `--format frames-json` is parsed but exits 2 with "not implemented yet (M5)". ffmpeg gets `-y`, which is safe because the temporary
+  file is one this run created itself. That file is `.<stem>.<pid>-<random>.partial.<ext>` beside the output (so ffmpeg still sees `.mp4` or `.gif`),
+  created with the `wx` flag (`scripts/export/partial.ts`); `.gitignore` has `*.partial.*`. An earlier fixed name `<stem>.partial.<ext>` let an export
+  overwrite and then delete a user's file of that name.
   The CLI reads `playback.fps` from `dist/data` to pick the MP4 fps before the page loads. `npm run test:e2e` builds first.
 - **Measured cost** replaced the §15 estimate. The README GIF is `docs/media/demo.gif` (800x450, 25 fps, 375 frames; 3.0 MB at M3, 2.3 MB when remade with the header band).
   `docs/media/spy-4dates.gif` is the real set (`--fps 10`, 101 frames, 0.9 MB).
@@ -524,7 +526,7 @@ Gaps found while building, each resolved with the simplest option consistent wit
   `schema`, `schema_version`, `id` and `badge` are added to the §10.7 shape so the Blender script can reject a wrong file and keep the data
   badge on screen. IVs are rounded to 6 dp and the file is compact JSON (real set about 0.8 MB, synthetic about 0.4 MB at 10 fps).
   `exportFramesJson` in `scripts/export/framesJson.ts` is pure (files injected). The CLI path needs no browser, ffmpeg or `dist/`.
-  Exit 2 for an unknown dataset or too many frames, 4 for unreadable or invalid data. The file is written as `<stem>.partial.json`, then renamed.
+  Exit 2 for an unknown dataset or too many frames, 4 for unreadable or invalid data. The file is written to the same kind of unique temporary name, then renamed.
 - **Python tooling.** `pyproject.toml` (no build, `package = false`) with `pytest==8.4.2` in a `dev` dependency group, and a committed `uv.lock`.
   `test:py` is `uv run --locked pytest tools/blender`, instead of §4's `--with-requirements tools/blender/requirements-dev.txt`: one pinned
   source, no second file. `verify` is `npm test && npm run build && npm run test:py`.
@@ -536,3 +538,12 @@ Gaps found while building, each resolved with the simplest option consistent wit
   `load_frames_doc`. `tests/e2e/export.smoke.ts` compares `frames-json` captions and event pills with what the page shows for six frames.
 - **Not verified.** Everything that imports `bpy`: shape-key `foreach_set`, constant keyframe interpolation (set through the preference
   `keyframe_new_interpolation_type`), the shader node graph, text objects, rendering. Blender is not installed here.
+
+## Implementation notes (review fixes)
+
+- **Colour ramp is viridis**, the 33 stops of `tools/blender/render_surface_sequence.py` (matplotlib 3.11.0, CC0), so the page and Blender agree.
+  The earlier light-to-dark blue ramp made the whole surface one pale blue. `RAMP_STOPS` is now a table of sRGB triples (the hex helper is gone).
+  `docs/media/demo.gif` (2.6 MB) and `spy-4dates.gif` (0.9 MB) were remade with it.
+- **Bad `?dataset=`** (fails the id rule) now shows the error panel naming the value. `export.ts` checks `--dataset` against `public/data/index.json`
+  and exits 2 before Chromium starts.
+- **Import script** writes the dataset and `index.json` through `scripts/lib/atomicWrite.ts` (temporary file, then rename).

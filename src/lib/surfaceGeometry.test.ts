@@ -38,10 +38,10 @@ describe('buildSurfaceGeometry: 2 x 2 grid (hand-worked)', () => {
     expect(g.extent).toEqual({ moneyness: [-0.2, 0.2], dte: [10, 30], iv: [0.2, 0.6] })
   })
 
-  it('colours the minimum-IV vertex with the light end of the ramp and the maximum with the dark end (linear light)', () => {
-    // Ramp ends decoded from #86b6ef and #184f95 with the sRGB formula (see colorRamp.test.ts).
-    close(g.colors.slice(0, 3), [0.238398, 0.467784, 0.863157]) // v0, y = 0
-    close(g.colors.slice(9, 12), [0.009134, 0.078187, 0.300544]) // v3, y = 1
+  it('colours the minimum-IV vertex with the first viridis stop and the maximum with the last (linear light)', () => {
+    // Ramp ends decoded from viridis(0) and viridis(1) with the sRGB formula (see colorRamp.test.ts).
+    close(g.colors.slice(0, 3), [0.057949, 0.000379, 0.088649]) // v0, y = 0
+    close(g.colors.slice(9, 12), [0.984601, 0.799737, 0.018235]) // v3, y = 1
     expect(g.colors).toBeInstanceOf(Float32Array)
     expect(g.colors).toHaveLength(12)
   })
@@ -101,9 +101,9 @@ describe('buildSurfaceGeometry: 3 x 3 grid with uneven spacing (hand-worked)', (
     }
   })
 
-  it('colour follows IV: lowest-IV vertex is the ramp start, highest-IV the ramp end, none NaN', () => {
-    close(g.colors.slice(3 * 5, 3 * 5 + 3), [0.238398, 0.467784, 0.863157]) // v5: iv 0.20 (min), y = 0
-    close(g.colors.slice(0, 3), [0.009134, 0.078187, 0.300544]) // v0: iv 0.30 (max), y = 1
+  it('colour follows IV: lowest-IV vertex is the ramp start (dark purple), highest-IV the ramp end (yellow), none NaN', () => {
+    close(g.colors.slice(3 * 5, 3 * 5 + 3), [0.057949, 0.000379, 0.088649]) // v5: iv 0.20 (min), y = 0
+    close(g.colors.slice(0, 3), [0.984601, 0.799737, 0.018235]) // v0: iv 0.30 (max), y = 1
     expect(Array.from(g.colors).every(Number.isFinite)).toBe(true)
   })
 
@@ -251,7 +251,7 @@ describe('writeHeights: fixed IV extent, in-place writes', () => {
     expect(positions[1]).toBe(1)
     writeHeights(k, dte, [[0.2, 0.2], [0.2, 0.2]], [0.2, 0.6], positions, colors)
     expect(positions[1]).toBe(0)
-    close(colors.slice(0, 3), [0.238398, 0.467784, 0.863157])
+    close(colors.slice(0, 3), [0.057949, 0.000379, 0.088649]) // y = 0 is viridis(0) in linear light
   })
 
   it('clamps an IV outside the extent to the edge of the box instead of leaving it', () => {

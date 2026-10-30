@@ -18,9 +18,9 @@ describe('meshAttributes: 2 x 2 grid (hand-worked, same grid as surfaceGeometry.
   })
 
   it('color holds linear-light r, g, b per vertex (not the positions)', () => {
-    // v0 is the light end of the ramp (#86b6ef), v3 the dark end (#184f95), decoded to linear light.
-    close(attrs.color.slice(0, 3), [0.238398, 0.467784, 0.863157])
-    close(attrs.color.slice(9, 12), [0.009134, 0.078187, 0.300544])
+    // v0 is the first viridis stop (#440154), v3 the last (#fde725), decoded to linear light.
+    close(attrs.color.slice(0, 3), [0.057949, 0.000379, 0.088649])
+    close(attrs.color.slice(9, 12), [0.984601, 0.799737, 0.018235])
     expect(attrs.color).toHaveLength(12)
   })
 

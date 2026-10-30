@@ -7,7 +7,7 @@ Copied and adapted from [vol-strategy-backtester](https://github.com/rajib2k5/vo
 |---|---|---|
 | `src/lib/surfaceGeometry.ts` (+ test) | `lib/surfaceGeometry.ts` | split into `buildTopology` and `writeHeights`, fixed IV extent passed in, `.ts` imports |
 | `src/lib/surfaceScene.ts` (+ test) | `lib/surfaceScene.ts` | `.ts` imports, `ORBIT_TARGET` re-tuned for the fixed extent |
-| `src/lib/colorRamp.ts` (+ test) | `lib/colorRamp.ts` | comment about tone mapping only |
+| `src/lib/colorRamp.ts` (+ test) | `lib/colorRamp.ts` | ramp replaced by viridis (below); comment about tone mapping |
 | `src/lib/framing.ts` (+ test) | `lib/framing.ts` | none |
 | `src/lib/labelProjection.ts` (+ test) | `lib/labelProjection.ts` | none |
 | `src/lib/format.ts` (+ test) | `lib/format.ts` | dropped `compact` and `bps` (unused) |
@@ -22,5 +22,8 @@ repository from OptionsDX quotes (via Kaggle), imported by `scripts/import-backt
 
 The SSVI formulation follows `src/volbt/illustrative.py` in the same repository, and Gatheral and Jacquier,
 "Arbitrage-free SVI volatility surfaces" (2014).
+
+Colour ramp: [viridis](https://bids.github.io/colormap/) from matplotlib (CC0, by Nathaniel Smith and Stefan van der Walt),
+sampled every 1/32 from matplotlib 3.11.0. The same 33 stops are in `src/lib/colorRamp.ts` and `tools/blender/render_surface_sequence.py`.
 
 Fonts: the page uses the system font stack. No font is loaded from a network and none is bundled.
