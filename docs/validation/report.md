@@ -7,7 +7,7 @@ Channel B (runtime probes only, each with a failing mutant): [channel-b.md](chan
 
 ## Verdict
 
-**Pass after one fix.** Twelve material claims are accepted. C4 was REJECTED as stated and is fixed. C10–C12 are accepted on runtime evidence only, because they are about this data and no theorem covers them. That limit is stated below.
+**Pass after one fix.** Twelve material claims are accepted. C4 was REJECTED as stated and is fixed. C10–C12 are accepted on runtime evidence only, because they are about this data and no theorem covers them. Channel A also returned UNVERIFIABLE for C7 (it holds by hand only if the generator does not throw for this seed) and for C13 (floating-point `**`), so their runtime halves rest on Channel B alone. Channel A's verdict on C9 carries a minor note about the `i === j` path: that path returns frame i's IVs unchanged whatever α is.
 
 ## Evidence table
 
