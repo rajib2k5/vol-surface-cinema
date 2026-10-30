@@ -88,8 +88,9 @@ describe('committed public/data/synthetic-regime-story.json', () => {
 
 describe('public/data/index.json', () => {
   const idx = JSON.parse(readFileSync(new URL('../../public/data/index.json', import.meta.url), 'utf8'))
-  it('lists the synthetic story, whose file stem equals its id', () => {
-    expect(idx.datasets).toEqual([{ id: 'synthetic-regime-story', title: committed.title, file: 'synthetic-regime-story.json' }])
+  it('lists the synthetic story first (the default dataset), whose file stem equals its id', () => {
+    // M4: the optional real dataset has its own entry after this one, so only the first entry is pinned here.
+    expect(idx.datasets[0]).toEqual({ id: 'synthetic-regime-story', title: committed.title, file: 'synthetic-regime-story.json' })
     expect(committed.id).toBe('synthetic-regime-story')
   })
 })

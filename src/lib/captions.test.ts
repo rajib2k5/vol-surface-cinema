@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dateCaption } from './captions.ts'
+import { dateCaption, extrapolationNote } from './captions.ts'
 import type { FrameState } from './timeline.ts'
 
 const dates = ['2030-01-02', '2030-01-03', '2030-02-20']
@@ -34,5 +34,25 @@ describe('dateCaption', () => {
     expect(dateCaption(st({ i: 0, j: 1, rawAlpha: 0.2, phase: 'transition' }), d)).toBe('2030-01-01')
     expect(dateCaption(st({ i: 1, j: 2, rawAlpha: 0.2, phase: 'transition' }), d)).toBe('2030-01-08 → 2030-01-16 (interpolated)')
     expect(dateCaption(st({ i: 0, j: 1, rawAlpha: 0.2, phase: 'transition' }), d, 6)).toBe('2030-01-01 → 2030-01-08 (interpolated)')
+  })
+})
+
+describe('extrapolationNote', () => {
+  const shares = [0.653846, 0.98951, 0.5]
+  it('during a hold it gives the share of cells that were extrapolated: 1 - quoted_share, rounded to a whole percent', () => {
+    expect(extrapolationNote(st({ i: 0, j: 0 }), shares)).toBe('35% of cells extrapolated')
+    expect(extrapolationNote(st({ i: 1, j: 1 }), shares)).toBe('1% of cells extrapolated')
+  })
+  it('during a transition it shows both ends, for the whole transition', () => {
+    const s = st({ i: 0, j: 1, rawAlpha: 0.3, phase: 'transition' })
+    expect(extrapolationNote(s, shares)).toBe('35% → 1% of cells extrapolated')
+    expect(extrapolationNote({ ...s, rawAlpha: 0.9 }, shares)).toBe('35% → 1% of cells extrapolated')
+  })
+  it('is null when the sequence has no quoted_share (the synthetic story), or either end lacks it', () => {
+    expect(extrapolationNote(st({ i: 0, j: 0 }), [undefined, undefined, undefined])).toBeNull()
+    expect(extrapolationNote(st({ i: 0, j: 1, phase: 'transition' }), [0.5, undefined, 0.5])).toBeNull()
+  })
+  it('a fully quoted frame reads 0%', () => {
+    expect(extrapolationNote(st({ i: 0, j: 0 }), [1])).toBe('0% of cells extrapolated')
   })
 })

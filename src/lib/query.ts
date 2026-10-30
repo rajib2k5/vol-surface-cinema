@@ -27,3 +27,9 @@ export function parseQuery(search: string): Query {
     fps: int(p.get('fps'), 1, 60),
   }
 }
+
+/** The link that selects a dataset in the menu. Only a plain id is accepted, so nothing else can ride along. */
+export function datasetHref(id: string): string {
+  if (!ID_RE.test(id)) throw new RangeError(`not a dataset id: ${JSON.stringify(id)}`)
+  return `?dataset=${id}`
+}

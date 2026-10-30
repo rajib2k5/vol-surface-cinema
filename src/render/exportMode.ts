@@ -12,6 +12,7 @@ import { createViewer } from './viewer.ts'
 export function mountExport(stage: HTMLElement, controlsHost: HTMLElement, query: Query): void {
   document.documentElement.classList.add('export')
   controlsHost.remove()
+  document.getElementById('meta')?.remove()
   const width = query.width ?? 1280
   const height = query.height ?? 720
   stage.style.width = `${width}px`

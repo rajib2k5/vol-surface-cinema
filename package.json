@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "gen:data": "node scripts/generate-synthetic.ts",
+    "import:real": "node scripts/import-backtester-frames.ts",
     "export": "npm run build && node scripts/export.ts",
     "test:e2e": "npm run build && node tests/e2e/export.smoke.ts",
     "verify": "npm test && npm run build"

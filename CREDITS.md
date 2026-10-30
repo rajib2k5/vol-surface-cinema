@@ -16,6 +16,9 @@ Copied and adapted from [vol-strategy-backtester](https://github.com/rajib2k5/vo
 | `src/render/heatmap.ts` | `lib/charts.tsx` Heatmap | rewrite as a 2D canvas, not a copy |
 | `src/render/controls.ts` | frame-picker idea in `views/SurfacePage.tsx` | rewrite |
 
+Real dataset (`public/data/optionsdx-spy-4dates.json`): implied-vol grids computed by the pricing build of the same
+repository from OptionsDX quotes (via Kaggle), imported by `scripts/import-backtester-frames.ts`. Terms and limits: [DATA.md](DATA.md).
+
 The SSVI formulation follows `src/volbt/illustrative.py` in the same repository, and Gatheral and Jacquier,
 "Arbitrage-free SVI volatility surfaces" (2014).
 

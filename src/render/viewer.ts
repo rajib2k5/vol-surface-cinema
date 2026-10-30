@@ -3,7 +3,7 @@
  * export hook call show(n); neither reads a clock. n -> frameAt -> interpolate -> scene + overlay.
  */
 import type { Sequence } from '../lib/contract.ts'
-import { dateCaption } from '../lib/captions.ts'
+import { dateCaption, extrapolationNote } from '../lib/captions.ts'
 import { activeEvents, eventsFromSequence } from '../lib/events.ts'
 import { sequenceIvExtent } from '../lib/extent.ts'
 import { interpolateIv, makeIvBuffer, precomputeW } from '../lib/interpolate.ts'
@@ -50,6 +50,7 @@ export function createViewer(o: ViewerOptions): Viewer {
   const ivExtent = sequenceIvExtent(sequence)
   const events = eventsFromSequence(sequence, fps)
   const dates = sequence.frames.map((f) => f.date)
+  const quotedShares = sequence.frames.map((f) => f.quoted_share)
   const turns = sequence.display?.orbit_turns ?? 0
   const overlay: Overlay = createOverlay(stage, sequence.badge, events)
 
@@ -95,7 +96,7 @@ export function createViewer(o: ViewerOptions): Viewer {
     interpolateIv(wg, st.i, st.j, st.alpha, buf)
     if (scene) scene.setFrame(buf, orbitAzimuth(turns, n, total))
     else heat?.setFrame(buf)
-    overlay.set(dateCaption(st, dates), activeEvents(spec, events, n))
+    overlay.set(dateCaption(st, dates), activeEvents(spec, events, n), extrapolationNote(st, quotedShares))
   }
 
   return {

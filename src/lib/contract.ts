@@ -42,6 +42,8 @@ export interface Sequence {
     kind: 'synthetic' | 'derived'
     notice: string
     source_commit?: string
+    /** Ids of the run that computed a derived dataset (provenance only; the player does not read them). */
+    run?: { run_id: string; config_hash: string; data_fingerprint: string }
     generator?: { script: string; seed: number }
     providers?: { name: string; role: string; terms_url: string; licence: string }[]
   }

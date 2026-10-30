@@ -1,10 +1,13 @@
 /** Boot: read the query, then mount the live player or, with ?export=1, the export mode the headless CLI drives. */
 import { DatasetError, loadDataset } from './lib/dataset.ts'
 import { createPlayer } from './lib/player.ts'
+import { noticeLines } from './lib/notice.ts'
 import { parseQuery } from './lib/query.ts'
 import { createControls } from './render/controls.ts'
+import { createDatasetMenu } from './render/datasetMenu.ts'
 import { showError } from './render/errorPanel.ts'
 import { mountExport } from './render/exportMode.ts'
+import { showNotice } from './render/noticePanel.ts'
 import { createViewer } from './render/viewer.ts'
 
 async function boot(): Promise<void> {
@@ -16,7 +19,9 @@ async function boot(): Promise<void> {
     return
   }
   try {
-    const { sequence } = await loadDataset(query.dataset)
+    const { sequence, index } = await loadDataset(query.dataset)
+    createDatasetMenu(document.getElementById('dataset-menu') as HTMLElement, index, sequence.id, (href) => location.assign(href))
+    showNotice(document.getElementById('notice') as HTMLElement, noticeLines(sequence))
     // fps precedence (live): page ?fps= > playback.fps > 30.
     const fps = query.fps ?? sequence.playback?.fps ?? 30
     const viewer = createViewer({ stage, sequence, fps, exportMode: false })

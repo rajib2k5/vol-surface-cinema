@@ -44,6 +44,16 @@ Measured here (SwiftShader, 20 cores): 0.17 s per frame at 1280x720 and at 800x4
 `surface-sequence` v1 (see `docs/design.md` §7). The synthetic story is generated from a seeded SSVI model
 (`src/synth`), checked against Gatheral and Jacquier's no-arbitrage conditions, and committed.
 
+## Real dataset (optional)
+
+`public/data/optionsdx-spy-4dates.json` holds SPY implied-vol grids for four real dates (2017-11-03, 2018-02-05, 2020-03-16, 2023-06-15),
+derived from OptionsDX end-of-day quotes via Kaggle. It is not the default and **is not covered by the MIT licence**: read [DATA.md](DATA.md).
+Pick it from the dataset menu or open `?dataset=optionsdx-spy-4dates`. The four dates are months to years apart, so every frame between
+them is interpolated, not observed, and the caption says so. The page shows the share of cells that were extrapolated. The grids are shown
+as exported: they have butterfly violations on a finite-difference screen (DATA.md has the numbers).
+
+    npm run import:real -- --in <path to vol-strategy-backtester/app/public/data/surface_frames.json>   # one-off, read only
+
 ## Docs
 
 `docs/design.md` is the build spec, `docs/adr/0001-architecture.md` the decisions, `CREDITS.md` the copied code.

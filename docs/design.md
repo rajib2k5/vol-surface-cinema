@@ -489,3 +489,26 @@ Gaps found while building, each resolved with the simplest option consistent wit
   prompt. The partial file is `<stem>.partial.<ext>` (so ffmpeg still sees `.mp4` or `.gif`); `.gitignore` has `*.partial.*`.
   The CLI reads `playback.fps` from `dist/data` to pick the MP4 fps before the page loads. `npm run test:e2e` builds first.
 - **Measured cost** replaced the §15 estimate. The README GIF is `docs/media/demo.gif` (800x450, 25 fps, 375 frames, 3.0 MB).
+
+## Implementation notes (M4)
+
+- **`index.json` has two writers.** `gen:data` and `import:real` each upsert only their own entry (`scripts/lib/indexFile.ts`), so neither
+  drops the other's dataset. The synthetic entry is first (the default). The one assertion in `src/synth/generate.test.ts` that pinned
+  `index.json` to a single entry now pins only the first entry. No synthetic data or generator code changed.
+- **Import script** is `scripts/import-backtester-frames.ts` (`npm run import:real -- --in <path>`). Pure parts: `scripts/import/convert.ts`
+  and `args.ts`. The input path is resolved, must be an existing regular `.json` file (not a symlink) under 2 MB. The output names are fixed, so
+  nothing in the input chooses a path. There is no subprocess. The source is whitelisted: the date set is exactly the 4 known dates, run ids
+  match `[A-Za-z0-9._-]{1,128}`, and the result must pass `parseSequence` before anything is written.
+- **Source commit** is recorded as the source file carries it, `35cb682...-dirty`: the file is untracked there. Run ids are in `source.run`
+  (a new optional field of the `Sequence` type; the player does not read it).
+- **Discrete arbitrage screens** (`src/lib/gridChecks.ts`): calendar on total variance per column, butterfly g from three-point finite
+  differences on the k grid (interior strikes only). Report only. The numbers are in DATA.md and pinned by a test.
+- **Extrapolated share.** "N% of cells extrapolated" is `round(100 * (1 - quoted_share))`. In a transition it reads "A% → B%" (both ends),
+  because the mixed grid has no single share. It is shown in a second overlay line (`.extrap-note`), so it is also in exported frames.
+  It is absent when a dataset has no `quoted_share` (the synthetic story).
+- **Dataset menu and notice.** A `<select>` built from `index.json` (selecting reloads with `?dataset=<id>`) and a notice built from the
+  dataset's own `source`, both outside `#stage` and removed in export mode. The badge, inside the stage, is always on screen.
+- **Event pills moved down** (top 66px, was 12px): the long caption "2018-02-05 → 2020-03-16 (interpolated)" ran under the centred pill.
+  The README GIF was made before this and still shows the old position.
+- **No Cboe or Yahoo number is committed, even in a test.** The committed-file test holds the source's spot and VIX numbers as SHA-256 hashes.
+- **Size.** The committed real file is about 43 KB (the §15 estimate of 15 to 25 KB assumed compact rows).

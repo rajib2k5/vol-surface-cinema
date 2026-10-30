@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseQuery } from './query.ts'
+import { datasetHref, parseQuery } from './query.ts'
 
 describe('parseQuery', () => {
   it('defaults: live mode, no dataset, no overrides', () => {
@@ -30,5 +30,16 @@ describe('parseQuery', () => {
     expect(parseQuery('?fps=0')).toMatchObject({ fps: null })
     expect(parseQuery('?fps=61')).toMatchObject({ fps: null })
     expect(parseQuery('?fps=60')).toMatchObject({ fps: 60 })
+  })
+})
+
+describe('datasetHref', () => {
+  it('builds a ?dataset= link from a plain id', () => {
+    expect(datasetHref('optionsdx-spy-4dates')).toBe('?dataset=optionsdx-spy-4dates')
+  })
+  it('refuses an id that could carry anything else', () => {
+    expect(() => datasetHref('a&export=1')).toThrow(RangeError)
+    expect(() => datasetHref('../x')).toThrow(RangeError)
+    expect(() => datasetHref('')).toThrow(RangeError)
   })
 })
