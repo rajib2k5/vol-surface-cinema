@@ -76,11 +76,11 @@ The command builds the page first. Then it draws each frame in a headless browse
 | `--fps` | 1 to 60. For a GIF, use 10, 20, 25 or 50. The default is 25 for a GIF, and the `playback.fps` of the dataset for an MP4. |
 | `--size` | Width and height, as `WxH`. Both must be even, from 16 to 4096. The default is 1280x720 for MP4 and 800x450 for GIF. |
 | `--out` | The output file. This flag is required. The extension must match the format. |
-| `--force` | Overwrite an existing output file. Without this flag, the command stops if the file exists. |
+| `--force` | Overwrite an existing output file. Without this flag, the command stops if the file exists, also when it appears while the export runs. That file is never changed. |
 | `--max-frames` | The most frames to render. The default is 10000. |
 | `--gpu` | Use the GPU. By default, the export uses the software renderer SwiftShader. |
 
-The exit codes are 2 (bad arguments), 3 (ffmpeg, browser or build missing), 4 (render failure) and 5 (encode failure).
+The exit codes are 2 (bad arguments), 3 (ffmpeg, browser or build missing), 4 (render or write failure, also when the output file appears during the run and `--force` is not set) and 5 (encode failure).
 
 Frame `n` depends only on the dataset, `n`, the frame rate and the size. The same command gives the same frames on the same machine. The bytes of the MP4 or GIF can differ.
 

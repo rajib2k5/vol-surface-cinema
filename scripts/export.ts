@@ -1,11 +1,11 @@
 // Deterministic headless export: drives window.__cinema.renderFrame(n) in Playwright's chromium and
 // pipes PNG screenshots of #stage into ffmpeg. Usage and exit codes: docs/design.md §10.
 //   npm run export -- --format gif|mp4|frames-json --dataset <id> [--fps N] [--size WxH] --out <path> [--force] [--max-frames N] [--gpu]
-// Exit codes: 2 usage, 3 missing ffmpeg/browser/build, 4 render failure, 5 encode failure.
+// Exit codes: 2 usage, 3 missing ffmpeg/browser/build, 4 render or write failure (including an output that appeared during the run), 5 encode failure.
 // frames-json (for Blender) needs no browser, ffmpeg or build: it bakes the frames with the same pure modules.
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { rm, rename, writeFile } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import path from 'node:path'
 import { chromium } from 'playwright'
 import { parseIndex } from '../src/lib/contract.ts'
@@ -14,6 +14,7 @@ import { createEncoder, EncodeError } from './export/encoder.ts'
 import { exportFramesJson } from './export/framesJson.ts'
 import { ffmpegArgs } from './export/ffmpegArgs.ts'
 import { reservePartial } from './export/partial.ts'
+import { OutputExistsError, publishFile, writeViaPartial } from './export/publish.ts'
 import { checkBrowser, checkDatasetKnown, checkFfmpeg, ffmpegCommand } from './export/preflight.ts'
 import { openSession, RenderError } from './export/session.ts'
 
@@ -62,7 +63,7 @@ function readData(name: string): string | null {
   }
 }
 
-async function framesJson(args: { dataset: string | null; fps: number | null; size: { width: number; height: number }; out: string; maxFrames: number }): Promise<number> {
+async function framesJson(args: { dataset: string | null; fps: number | null; size: { width: number; height: number }; out: string; maxFrames: number; force: boolean }): Promise<number> {
   const r = exportFramesJson({
     dataset: args.dataset,
     fps: args.fps,
@@ -75,19 +76,10 @@ async function framesJson(args: { dataset: string | null; fps: number | null; si
     err(`export: ${r.message}`)
     return r.code
   }
-  // Written to a temporary file this run created beside the target, then renamed, so a failed run never leaves a half file under the final name.
-  let partial: string
+  // Written to a temporary file this run created beside the target, then published, so a failed run never leaves a half file under the final name.
   try {
-    partial = await reservePartial(args.out)
+    await writeViaPartial(args.out, r.text, args.force)
   } catch (e) {
-    err(`export: could not write ${args.out}: ${(e as Error).message}`)
-    return 4
-  }
-  try {
-    await writeFile(partial, r.text)
-    await rename(partial, args.out)
-  } catch (e) {
-    await rm(partial, { force: true }).catch(() => undefined)
     err(`export: could not write ${args.out}: ${(e as Error).message}`)
     return 4
   }
@@ -159,7 +151,7 @@ async function main(): Promise<number> {
     partial,
     final: args.out,
     spawn: spawn as never,
-    fs: { rename, rm: (p) => rm(p, { force: true }) },
+    fs: { publish: (from, to) => publishFile(from, to, args.force), rm: (p) => rm(p, { force: true }) },
   })
 
   // 4. Capture loop.
@@ -184,6 +176,10 @@ async function main(): Promise<number> {
     return 0
   } catch (e) {
     await encoder.abort().catch(() => undefined)
+    if (e instanceof OutputExistsError) {
+      err(`export: ${e.message}`)
+      return 4
+    }
     if (e instanceof EncodeError) {
       err(`export: encode failed: ${e.message}`)
       return 5

@@ -38,7 +38,7 @@ function fake(opts: { backpressure?: boolean } = {}) {
   }
   const fsLog: string[] = []
   const fs: EncoderFs = {
-    rename: async (a, b) => void fsLog.push(`rename ${a} ${b}`),
+    publish: async (a, b) => void fsLog.push(`publish ${a} ${b}`),
     rm: async (p) => void fsLog.push(`rm ${p}`),
   }
   return { child, spawn, spawnCalls, fs, fsLog, flush: () => release?.() }
@@ -56,7 +56,7 @@ describe('createEncoder', () => {
     expect(f.spawnCalls[0].opts).toMatchObject({ shell: false })
   })
 
-  it('writes every frame to stdin in order; finish() closes stdin, waits for exit 0, then renames .partial to the final name', async () => {
+  it('writes every frame to stdin in order; finish() closes stdin, waits for exit 0, then publishes .partial to the final name', async () => {
     const f = fake()
     const enc = mk(f)
     await enc.write(Buffer.from('AA'))
@@ -67,7 +67,7 @@ describe('createEncoder', () => {
     f.child.emit('close', 0, null)
     await done
     expect(Buffer.concat(f.child.written).toString()).toBe('AABB')
-    expect(f.fsLog).toEqual(['rename /o/a.partial.mp4 /o/a.mp4'])
+    expect(f.fsLog).toEqual(['publish /o/a.partial.mp4 /o/a.mp4'])
   })
 
   it('waits for drain when stdin applies backpressure', async () => {
@@ -98,7 +98,7 @@ describe('createEncoder', () => {
     expect(err.message).not.toContain('line 0\n')
     await enc.abort()
     expect(f.fsLog).toContain('rm /o/a.partial.mp4')
-    expect(f.fsLog.some((l) => l.startsWith('rename'))).toBe(false)
+    expect(f.fsLog.some((l) => l.startsWith('publish'))).toBe(false)
   })
 
   it('an EPIPE on stdin (ffmpeg gone) is reported as an EncodeError, not an unhandled error event', async () => {
@@ -120,7 +120,7 @@ describe('createEncoder', () => {
     const err = await done
     expect(err).toBeInstanceOf(EncodeError)
     expect(err.message).toContain('bad filter')
-    expect(f.fsLog.some((l) => l.startsWith('rename'))).toBe(false)
+    expect(f.fsLog.some((l) => l.startsWith('publish'))).toBe(false)
   })
 
   it('abort() kills the process and deletes the .partial file; calling it twice is harmless', async () => {

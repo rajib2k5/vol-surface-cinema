@@ -1,10 +1,11 @@
 import { spawn } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { rename, rm } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createEncoder } from './encoder.ts'
+import { OutputExistsError, publishFile } from './publish.ts'
 import { ffmpegArgs } from './ffmpegArgs.ts'
 import { createExclusive, reservePartial } from './partial.ts'
 
@@ -55,7 +56,7 @@ describe('reservePartial', () => {
 const FAKE = "require('fs').writeFileSync(process.argv.at(-1), 'encoded'); process.stdin.on('data', () => {}); process.stdin.on('end', () => process.exit(0))"
 const fakeSpawn = ((_cmd: string, args: string[]) => spawn(process.execPath, ['-e', FAKE, '--', ...args], { stdio: ['pipe', 'ignore', 'pipe'] })) as never
 
-async function startEncoder(out: string) {
+async function startEncoder(out: string, force = false) {
   const partial = await reservePartial(out)
   const encoder = createEncoder({
     ffmpeg: 'ffmpeg',
@@ -63,7 +64,7 @@ async function startEncoder(out: string) {
     partial,
     final: out,
     spawn: fakeSpawn,
-    fs: { rename, rm: (p) => rm(p, { force: true }) },
+    fs: { publish: (a, b) => publishFile(a, b, force), rm: (p) => rm(p, { force: true }) },
   })
   return { encoder, partial }
 }
@@ -92,5 +93,28 @@ describe('an export next to a user file named like the old partial path', () => 
     expect(readFileSync(lookalike, 'utf8')).toBe('USER DATA')
     expect(existsSync(out)).toBe(false)
     expect(readdirSync(dir)).toEqual(['p.partial.mp4'])
+  })
+})
+
+describe('an output file that appears while the export runs', () => {
+  it('without --force it survives byte-identical, finish() fails with OutputExistsError, and no temporary file is left', async () => {
+    const out = path.join(dir, 'race.gif')
+    const { encoder } = await startEncoder(out)
+    await encoder.write(Buffer.from('png'))
+    writeFileSync(out, 'USER BYTES') // created by someone else after the run started
+    await expect(encoder.finish()).rejects.toBeInstanceOf(OutputExistsError)
+    await encoder.abort()
+    expect(readFileSync(out, 'utf8')).toBe('USER BYTES')
+    expect(readdirSync(dir)).toEqual(['race.gif'])
+  })
+
+  it('with --force it is replaced', async () => {
+    const out = path.join(dir, 'race.gif')
+    const { encoder } = await startEncoder(out, true)
+    await encoder.write(Buffer.from('png'))
+    writeFileSync(out, 'USER BYTES')
+    await encoder.finish()
+    expect(readFileSync(out, 'utf8')).toBe('encoded')
+    expect(readdirSync(dir)).toEqual(['race.gif'])
   })
 })

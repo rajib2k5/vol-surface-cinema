@@ -3,7 +3,7 @@
  * injected so the failure paths (ffmpeg dies mid-stream, EPIPE, spawn error) are unit-tested.
  *
  *   write(png)  -> stdin, waits until flushed. Rejects with EncodeError if ffmpeg is gone.
- *   finish()    -> closes stdin, waits for exit 0, renames .partial to the final name.
+ *   finish()    -> closes stdin, waits for exit 0, publishes .partial under the final name (see publish.ts)..
  *   abort()     -> kills ffmpeg and deletes the .partial file. Safe to call twice.
  */
 import type { EventEmitter } from 'node:events'
@@ -25,7 +25,8 @@ export interface ChildLike extends EventEmitter {
 export type SpawnLike = (cmd: string, args: string[], opts: { shell: false; stdio: ['pipe', 'ignore', 'pipe'] }) => ChildLike
 
 export interface EncoderFs {
-  rename(from: string, to: string): Promise<void>
+  /** Moves the finished temporary file to the output name. Rejects with OutputExistsError when it must not replace a file. */
+  publish(from: string, to: string): Promise<void>
   rm(path: string): Promise<void>
 }
 
@@ -96,7 +97,7 @@ export function createEncoder(o: EncoderOptions): Encoder {
       await Promise.race([closed, failed])
       if (failure) throw failure
       if (exitCode !== 0) throw new EncodeError(`ffmpeg exited with code ${exitCode}\n${tail()}`.trimEnd())
-      await o.fs.rename(o.partial, o.final)
+      await o.fs.publish(o.partial, o.final)
     },
     async abort() {
       if (!exited) {
