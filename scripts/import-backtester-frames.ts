@@ -3,15 +3,17 @@
 //   npm run import:real -- --in /path/to/vol-strategy-backtester/app/public/data/surface_frames.json
 // Imports only the IV grid, cell flags, quoted share and run ids. Never spot, vix_close or atm_iv_30d.
 // Prints the calendar/butterfly screens it ran. It does not repair the data. Exit 2: bad arguments or input.
-import { lstatSync, readFileSync, writeFileSync } from 'node:fs'
+import { lstatSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { parseImportArgs } from './import/args.ts'
 import { convertFrames, ImportError, OUTPUT_ID } from './import/convert.ts'
+import { writeFileAtomic } from './lib/atomicWrite.ts'
 import { upsertDataset } from './lib/indexFile.ts'
 
 const MAX_OUTPUT_BYTES = 1_000_000
 const dataDir = new URL('../public/data/', import.meta.url)
 
-function main(): number {
+async function main(): Promise<number> {
   const args = parseImportArgs(process.argv.slice(2), {
     cwd: process.cwd(),
     fs: {
@@ -40,15 +42,17 @@ function main(): number {
     const { sequence, report } = convertFrames(raw)
     const text = JSON.stringify(sequence, null, 2) + '\n'
     if (Buffer.byteLength(text) > MAX_OUTPUT_BYTES) throw new ImportError([`output is over ${MAX_OUTPUT_BYTES} bytes`])
-    // Fixed output names: nothing the input says can choose where we write.
-    writeFileSync(new URL(`${OUTPUT_ID}.json`, dataDir), text)
     let existing: string | null = null
     try {
       existing = readFileSync(new URL('index.json', dataDir), 'utf8')
     } catch {
       existing = null
     }
-    writeFileSync(new URL('index.json', dataDir), upsertDataset(existing, { id: sequence.id, title: sequence.title, file: `${OUTPUT_ID}.json` }, 'last'))
+    // Everything that can throw runs before the first write. Each file then goes in through a temporary file and a rename.
+    const indexText = upsertDataset(existing, { id: sequence.id, title: sequence.title, file: `${OUTPUT_ID}.json` }, 'last')
+    // Fixed output names: nothing the input says can choose where we write.
+    await writeFileAtomic(fileURLToPath(new URL(`${OUTPUT_ID}.json`, dataDir)), text)
+    await writeFileAtomic(fileURLToPath(new URL('index.json', dataDir)), indexText)
     console.log(`wrote ${OUTPUT_ID}.json (${sequence.frames.length} frames, ${Buffer.byteLength(text)} bytes) and its index.json entry`)
     for (const f of report.frames)
       console.log(
@@ -66,4 +70,4 @@ function main(): number {
   }
 }
 
-process.exitCode = main()
+process.exitCode = await main()
