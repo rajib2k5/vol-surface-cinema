@@ -1,15 +1,20 @@
-/** Boot: read the query, load the dataset through index.json, mount the live player. Export mode is mounted in exportHook.ts (M3). */
+/** Boot: read the query, then mount the live player or, with ?export=1, the export mode the headless CLI drives. */
 import { DatasetError, loadDataset } from './lib/dataset.ts'
 import { createPlayer } from './lib/player.ts'
 import { parseQuery } from './lib/query.ts'
 import { createControls } from './render/controls.ts'
 import { showError } from './render/errorPanel.ts'
+import { mountExport } from './render/exportMode.ts'
 import { createViewer } from './render/viewer.ts'
 
 async function boot(): Promise<void> {
   const stage = document.getElementById('stage') as HTMLElement
   const controlsHost = document.getElementById('controls') as HTMLElement
   const query = parseQuery(location.search)
+  if (query.export) {
+    mountExport(stage, controlsHost, query)
+    return
+  }
   try {
     const { sequence } = await loadDataset(query.dataset)
     // fps precedence (live): page ?fps= > playback.fps > 30.

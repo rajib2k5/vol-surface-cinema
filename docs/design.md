@@ -425,8 +425,9 @@ window.__cinema = {
     shape measured 173 KB.
   - Real, 4 frames with flags: about 15–25 KB.
   - The README GIF is ≤ 5 MB.
-- **Export** (estimate, measure in M3): about 0.1–0.3 s/frame at 1280x720 in SwiftShader. At 30 fps the default story is
-  `59·6 + 6 = 360` frames plus three 30-frame event holds, about 450 frames. That is about 1–2 min per MP4. Disk use is about 0, because frames are piped.
+- **Export** (measured in M3, SwiftShader on a 20-core machine, ffmpeg 1 process): 0.17 s/frame at 1280x720 (450 frames, MP4 in 75.0 s,
+  803 KB) and 0.17 to 0.18 s/frame at 800x450 (375 frames, GIF in 65 to 69 s, 3.0 MB). A 320x180 smoke export runs at 0.10 s/frame.
+  Disk use is about 0, because frames are piped.
 
 ## 16. Increments (each leaves a runnable repo)
 
@@ -483,3 +484,8 @@ Gaps found while building, each resolved with the simplest option consistent wit
 - **`writeHeights` clamps** an IV outside the extent to the edge of the box, so a hand-set `display.iv_range` cannot push the mesh out of the unit box.
 - **Autoplay.** The live page starts playing on load. `play()` while paused on the last frame of a non-looping player restarts at 0 (as from `'ended'`).
 - **`buildSurfaceGeometry`** is kept as a thin convenience over `buildTopology` + `writeHeights` (used by tests and one-off callers).
+- **Export (M3).** `scripts/export/session.ts` (Vite `preview()` plus Playwright) is shared by the CLI and `tests/e2e/export.smoke.ts`.
+  `--format frames-json` is parsed but exits 2 with "not implemented yet (M5)". ffmpeg gets `-y` so a stale `.partial` cannot make it
+  prompt. The partial file is `<stem>.partial.<ext>` (so ffmpeg still sees `.mp4` or `.gif`); `.gitignore` has `*.partial.*`.
+  The CLI reads `playback.fps` from `dist/data` to pick the MP4 fps before the page loads. `npm run test:e2e` builds first.
+- **Measured cost** replaced the §15 estimate. The README GIF is `docs/media/demo.gif` (800x450, 25 fps, 375 frames, 3.0 MB).

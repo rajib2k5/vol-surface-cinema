@@ -25,7 +25,7 @@ html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: va
 .axis-title { color: var(--fg); font-family: var(--font); }
 .overlay { position: absolute; inset: 0; pointer-events: none; }
 .pills { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; }
-.badge { position: absolute; left: 12px; top: 10px; font-size: 12px; color: var(--muted); max-width: 70%; }
+.badge { position: absolute; left: 12px; top: 10px; font-size: 12px; color: var(--muted); max-width: 36%; line-height: 1.3; }
 .caption { position: absolute; right: 16px; top: 8px; font-size: 22px; font-family: var(--mono); letter-spacing: 0.02em; }
 .pill {
   padding: 6px 14px; border-radius: 999px; background: #184f95; color: #fff; font-size: 15px;
@@ -51,6 +51,7 @@ html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: va
 .dataset { font-size: 13px; color: var(--muted); }
 /* Export mode: nothing may animate or transition; the frame index is the only clock. */
 .export, .export * { transition: none !important; animation: none !important; }
-.export body, body.export { background: #fff; }
-.export .stage { border-radius: 0; }
+.export #app { max-width: none; margin: 0; padding: 0; }
+.export .stage { border-radius: 0; aspect-ratio: auto; }
+.export body, html.export body { margin: 0; }
 .picker button[aria-pressed=true] { background: var(--accent); color: #0b1020; border-color: var(--accent); }

@@ -15,7 +15,7 @@
     "test": "vitest run",
     "gen:data": "node scripts/generate-synthetic.ts",
     "export": "npm run build && node scripts/export.ts",
-    "test:e2e": "node tests/e2e/export.smoke.ts",
+    "test:e2e": "npm run build && node tests/e2e/export.smoke.ts",
     "verify": "npm test && npm run build"
   },
   "dependencies": {

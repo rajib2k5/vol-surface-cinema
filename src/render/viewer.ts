@@ -34,6 +34,8 @@ export interface Viewer {
   resize(width: number, height: number): void
   /** OrbitControls are live only while paused (live mode). */
   setControlsEnabled(enabled: boolean): void
+  /** Resolves when the overlay font is ready. */
+  ready: Promise<void>
   dates: string[]
   events: { dateIndex: number; label: string; kind?: string }[]
   dispose(): void
@@ -99,6 +101,7 @@ export function createViewer(o: ViewerOptions): Viewer {
   return {
     spec,
     total,
+    ready: overlay.ready,
     dates,
     events,
     backend: () => (scene ? 'webgl' : 'heatmap'),
