@@ -512,3 +512,22 @@ Gaps found while building, each resolved with the simplest option consistent wit
   The README GIF was made before this and still shows the old position.
 - **No Cboe or Yahoo number is committed, even in a test.** The committed-file test holds the source's spot and VIX numbers as SHA-256 hashes.
 - **Size.** The committed real file is about 43 KB (the §15 estimate of 15 to 25 KB assumed compact rows).
+
+## Implementation notes (M5)
+
+- **`frames-json` format.** `{ schema, schema_version: 1, id, badge, fps, width, height, grid, extent, frames: [{ n, iv, caption, events }] }`.
+  `schema`, `schema_version`, `id` and `badge` are added to the §10.7 shape so the Blender script can reject a wrong file and keep the data
+  badge on screen. IVs are rounded to 6 dp and the file is compact JSON (real set about 0.8 MB, synthetic about 0.4 MB at 10 fps).
+  `exportFramesJson` in `scripts/export/framesJson.ts` is pure (files injected). The CLI path needs no browser, ffmpeg or `dist/`.
+  Exit 2 for an unknown dataset or too many frames, 4 for unreadable or invalid data. The file is written as `<stem>.partial.json`, then renamed.
+- **Python tooling.** `pyproject.toml` (no build, `package = false`) with `pytest==8.4.2` in a `dev` dependency group, and a committed `uv.lock`.
+  `test:py` is `uv run --locked pytest tools/blender`, instead of §4's `--with-requirements tools/blender/requirements-dev.txt`: one pinned
+  source, no second file. `verify` is `npm test && npm run build && npm run test:py`.
+- **Wireframe.** A WIREFRAME modifier with `material_offset = 1` on the surface object, not a second mesh copy, so the wire follows the shape keys.
+- **`--every N`** keeps every Nth baked frame and sets `fps_base = N`, so the duration is unchanged. The suggested N is `ceil(frames / 2000)`.
+- **Captions.** Date captions (one text per distinct caption) and event labels (one per distinct label) are text objects parented to the camera,
+  keyframed on `hide_render` (`date_caption_keyframes`, `caption_keyframes`). The badge text is always on. Event opacity is not baked (a label is on or off).
+- **Cross-language check.** One pytest runs the real exporter (`node scripts/export.ts`, argv list) on both datasets and validates its output with
+  `load_frames_doc`. `tests/e2e/export.smoke.ts` compares `frames-json` captions and event pills with what the page shows for six frames.
+- **Not verified.** Everything that imports `bpy`: shape-key `foreach_set`, constant keyframe interpolation (set through the preference
+  `keyframe_new_interpolation_type`), the shader node graph, text objects, rendering. Blender is not installed here.

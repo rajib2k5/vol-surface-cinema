@@ -34,6 +34,7 @@ Measured here (SwiftShader, 20 cores): 0.17 s per frame at 1280x720 and at 800x4
 
 ## Tests
 
+    npm run test:py   # pytest, pure half of the Blender script (needs uv)
     npm test          # vitest: timeline, interpolation, SSVI arbitrage checks, contract, export helpers
     npm run test:e2e  # Playwright + ffmpeg smoke test of the export pipeline (needs the setup above)
     npm run gen:data  # regenerate public/data/synthetic-regime-story.json (a drift test pins it)
@@ -53,6 +54,24 @@ them is interpolated, not observed, and the caption says so. The page shows the 
 as exported: they have butterfly violations on a finite-difference screen (DATA.md has the numbers).
 
     npm run import:real -- --in <path to vol-strategy-backtester/app/public/data/surface_frames.json>   # one-off, read only
+
+## Blender (optional, not yet run in Blender)
+
+`tools/blender/render_surface_sequence.py` renders the animation in Blender as a PNG sequence, one shape key per frame.
+**It has never been run in Blender**: Blender is not installed where it was written. Only its pure half (JSON checks, frame to
+vertex heights, caption and shape-key schedules, camera maths, arguments) is tested, by pytest, without bpy. The Blender-side functions
+are untested. Expect small API fixes on the first run and look at the first frames by eye.
+
+The page, the export CLI and Blender share one timeline: the exporter bakes every frame's IV grid, caption and events to JSON, and
+the Blender script only reads that.
+
+    npm run export -- --format frames-json --dataset synthetic-regime-story --out frames.json
+    blender --background --python tools/blender/render_surface_sequence.py --python-exit-code 1 -- \
+        --data frames.json --out-dir out/frames            # PNGs frame_0001.png, ...; join them with ffmpeg
+
+Options: `--every N` (render every Nth baked frame at 1/N the frame rate), `--samples N`, `--resolution WxH`.
+The script refuses more than 2000 frames (one shape key each) and suggests the `--every` that fits. The page's camera orbit is not baked.
+The Python tests need [uv](https://docs.astral.sh/uv/): `npm run test:py` (part of `npm run verify`).
 
 ## Docs
 

@@ -17,7 +17,8 @@
     "import:real": "node scripts/import-backtester-frames.ts",
     "export": "npm run build && node scripts/export.ts",
     "test:e2e": "npm run build && node tests/e2e/export.smoke.ts",
-    "verify": "npm test && npm run build"
+    "test:py": "uv run --locked pytest tools/blender",
+    "verify": "npm test && npm run build && npm run test:py"
   },
   "dependencies": {
     "three": "0.186.1"

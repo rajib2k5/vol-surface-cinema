@@ -4,11 +4,12 @@
 //   - ffprobe frame count == totalFrames, duration == total / fps within one frame
 //   - frame 0 has > 5% non-background pixels
 //   - frame k gives the same PNG sha256 on two renders (same page, and a fresh browser)
+//   - frames-json (M5) agrees with the page on the caption and the visible event pills of several frames, and has totalFrames frames
 //   - the CLI exits 4 for an unknown dataset and leaves no output, 3 without ffmpeg, 2 for bad arguments
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { openSession } from '../../scripts/export/session.ts'
@@ -75,6 +76,24 @@ try {
     } finally {
       await second.close()
     }
+    // 3b. frames-json is baked from the same pure modules: it must agree with what the page shows.
+    const fj = path.join(dir, 'frames.json')
+    const fjRun = cli(['--format', 'frames-json', '--dataset', 'synthetic-regime-story', '--fps', String(FPS), '--size', `${W}x${H}`, '--out', fj])
+    assert.equal(fjRun.status, 0, `frames-json exited ${fjRun.status}\n${fjRun.stderr}`)
+    const baked = JSON.parse(readFileSync(fj, 'utf8')) as { frames: { n: number; caption: string; events: { label: string }[] }[] }
+    assert.equal(baked.frames.length, total, 'frames-json frame count equals totalFrames')
+    let pillFrames = 0
+    for (const f of [0, 25, 40, 60, 100, total - 1]) {
+      await session.page.evaluate((n) => window.__cinema!.renderFrame(n), f)
+      const shown = await session.page.evaluate(() => ({
+        caption: document.querySelector('.caption')!.textContent,
+        pills: [...document.querySelectorAll('.pill')].filter((el) => (el as HTMLElement).style.display !== 'none').map((el) => el.textContent),
+      }))
+      assert.equal(shown.caption, baked.frames[f].caption, `caption of frame ${f}`)
+      assert.deepEqual(shown.pills, baked.frames[f].events.map((e) => e.label), `event pills of frame ${f}`)
+      if (shown.pills.length > 0) pillFrames++
+    }
+    assert.ok(pillFrames > 0, 'at least one of the compared frames shows an event pill, so the pill check is not vacuous')
     assert.deepEqual(session.errors(), [], 'no page errors')
     console.log(`ok: ${total} frames, ffprobe agrees, frame 0 ${(share * 100).toFixed(1)}% drawn, frame ${k} sha ${a.slice(0, 12)} stable`)
   } finally {
@@ -89,6 +108,9 @@ try {
   assert.equal(cli(['--format', 'mp4', '--out', bad, '--size', '321x180']).status, 2, 'odd size exits 2')
   assert.equal(cli(['--format', 'mp4', '--size', `${W}x${H}`, '--out', bad], { FFMPEG: '/nonexistent/ffmpeg' }).status, 3, 'missing ffmpeg exits 3')
   assert.equal(cli(['--format', 'mp4', '--size', `${W}x${H}`, '--out', out]).status, 2, 'existing output without --force exits 2')
+  const fjBad = path.join(dir, 'bad.json')
+  assert.equal(cli(['--format', 'frames-json', '--dataset', 'no-such-dataset', '--out', fjBad]).status, 2, 'frames-json with an unknown dataset exits 2')
+  assert.ok(!existsSync(fjBad), 'a failed frames-json export leaves no file')
   console.log('ok: exit codes 2, 3 and 4 behave, no partial files left')
 } finally {
   rmSync(dir, { recursive: true, force: true })

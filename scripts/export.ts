@@ -1,15 +1,17 @@
 // Deterministic headless export: drives window.__cinema.renderFrame(n) in Playwright's chromium and
 // pipes PNG screenshots of #stage into ffmpeg. Usage and exit codes: docs/design.md §10.
-//   npm run export -- --format gif|mp4 --dataset <id> [--fps N] [--size WxH] --out <path> [--force] [--max-frames N] [--gpu]
+//   npm run export -- --format gif|mp4|frames-json --dataset <id> [--fps N] [--size WxH] --out <path> [--force] [--max-frames N] [--gpu]
 // Exit codes: 2 usage, 3 missing ffmpeg/browser/build, 4 render failure, 5 encode failure.
+// frames-json (for Blender) needs no browser, ffmpeg or build: it bakes the frames with the same pure modules.
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
-import { rm, rename } from 'node:fs/promises'
+import { rm, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { chromium } from 'playwright'
 import { parseIndex } from '../src/lib/contract.ts'
 import { checkFrameCount, parseArgs, resolveFps } from './export/args.ts'
 import { createEncoder, EncodeError } from './export/encoder.ts'
+import { exportFramesJson } from './export/framesJson.ts'
 import { ffmpegArgs } from './export/ffmpegArgs.ts'
 import { partialPath } from './export/paths.ts'
 import { checkBrowser, checkFfmpeg, ffmpegCommand } from './export/preflight.ts'
@@ -51,6 +53,42 @@ async function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<
   }
 }
 
+/** Read a file under public/data by a bare name taken from index.json (the index parser only lets plain names through). */
+function readData(name: string): string | null {
+  try {
+    return readFileSync(path.join(root, 'public', 'data', name), 'utf8')
+  } catch {
+    return null
+  }
+}
+
+async function framesJson(args: { dataset: string | null; fps: number | null; size: { width: number; height: number }; out: string; maxFrames: number }): Promise<number> {
+  const r = exportFramesJson({
+    dataset: args.dataset,
+    fps: args.fps,
+    size: args.size,
+    maxFrames: args.maxFrames,
+    readIndex: () => readData('index.json') ?? '',
+    readDataset: readData,
+  })
+  if (!r.ok) {
+    err(`export: ${r.message}`)
+    return r.code
+  }
+  // Written beside the target and renamed, so a failed run never leaves a half file under the final name.
+  const partial = partialPath(args.out)
+  try {
+    await writeFile(partial, r.text)
+    await rename(partial, args.out)
+  } catch (e) {
+    await rm(partial, { force: true }).catch(() => undefined)
+    err(`export: could not write ${args.out}: ${(e as Error).message}`)
+    return 4
+  }
+  err(`export: wrote ${args.out} (${(Buffer.byteLength(r.text) / 1e6).toFixed(2)} MB)`)
+  return 0
+}
+
 async function main(): Promise<number> {
   // 1. Validate.
   const parsed = parseArgs(process.argv.slice(2), { cwd: process.cwd(), exists: existsSync, dirExists: isDir })
@@ -59,10 +97,7 @@ async function main(): Promise<number> {
     return 2
   }
   const args = parsed.value
-  if (args.format === 'frames-json') {
-    err('export: --format frames-json is not implemented yet (it arrives with the Blender milestone, M5)')
-    return 2
-  }
+  if (args.format === 'frames-json') return framesJson(args)
 
   // 2. Preflight, before any browser starts.
   const ff = ffmpegCommand(process.env)

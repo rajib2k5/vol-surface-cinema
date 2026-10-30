@@ -14,6 +14,7 @@ Copied and adapted from [vol-strategy-backtester](https://github.com/rajib2k5/vo
 | `src/render/webgl.ts` (+ test) | `views/webgl.ts` | none |
 | `src/render/scene.ts` | `views/SurfaceHero.tsx` | scene setup re-expressed in plain three.js (no React, no r3f) |
 | `src/render/heatmap.ts` | `lib/charts.tsx` Heatmap | rewrite as a 2D canvas, not a copy |
+| `tools/blender/render_surface_sequence.py` | `tools/blender/render_surface_hero.py` | pure half and Blender scene setup reused; animation by shape keys, height colour by shader nodes, captions by `hide_render` keys (new). Never run in Blender |
 | `src/render/controls.ts` | frame-picker idea in `views/SurfacePage.tsx` | rewrite |
 
 Real dataset (`public/data/optionsdx-spy-4dates.json`): implied-vol grids computed by the pricing build of the same
