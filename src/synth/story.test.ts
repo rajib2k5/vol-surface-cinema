@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { businessDates, buildDateParams, STORY } from './story.ts'
 import { calendarViolations, kRange, minButterflyG, mixSlices, sliceArrays, type SliceArrays } from './arbitrage.ts'
-import { ssviSlice, type SsviParams } from './ssvi.ts'
+import { ssviRightWingSlope, ssviSlice, type SsviParams } from './ssvi.ts'
 
 describe('businessDates', () => {
   it('starts on 2030-01-02 and skips weekends', () => {
@@ -56,6 +56,10 @@ describe('§5.4 arbitrage checks on the analytic SSVI of the story (k in [-1.5, 
         const g = minButterflyG(KS, sliceArrays(KS, at(params[t], m)))
         expect(g, `date ${t} T index ${m}`).toBeGreaterThanOrEqual(0)
       }
+  })
+  it('check 2b: right-wing slope lim w/k < 2 at every date and expiry (Lemma 2.2 also needs d+ -> -inf, which g >= 0 does not give)', () => {
+    for (let t = 0; t < params.length; t++)
+      for (let m = 0; m < T.length; m++) expect(ssviRightWingSlope(at(params[t], m)), `date ${t} T index ${m}`).toBeLessThan(2)
   })
   it('check 3: calendar w(k, T_{m+1}) >= w(k, T_m) at every date', () => {
     for (let t = 0; t < params.length; t++)

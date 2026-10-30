@@ -47,3 +47,11 @@ export function ssviSlice(k: number, p: SsviParams): Slice {
     w2: ((p.theta * f * f) / 2) * ((1 - p.rho * p.rho) / (s * s * s)),
   }
 }
+
+/**
+ * lim w(k)/k as k -> +inf, which is theta * phi * (1 + rho) / 2. Gatheral and Jacquier's Lemma 2.2 needs
+ * d+(k) -> -inf as k -> +inf as well as g >= 0. For SSVI that holds when this slope is below 2.
+ */
+export function ssviRightWingSlope(p: SsviParams): number {
+  return (p.theta * phi(p.theta, p.eta) * (1 + p.rho)) / 2
+}

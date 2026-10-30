@@ -7,7 +7,11 @@
  */
 import { ssviSlice, type Slice, type SsviParams } from './ssvi.ts'
 
-/** Gatheral's butterfly density g(k) = (1 - k w'/(2w))^2 - (w'^2/4)(1/w + 1/4) + w''/2. g >= 0 for all k means no butterfly arbitrage. */
+/**
+ * Gatheral's butterfly density g(k) = (1 - k w'/(2w))^2 - (w'^2/4)(1/w + 1/4) + w''/2. No butterfly arbitrage needs
+ * g >= 0 for all k AND d+(k) -> -inf as k -> +inf (Gatheral and Jacquier 2014, Lemma 2.2). For SSVI the second
+ * part is ssviRightWingSlope < 2; a convex mixture's wing slope is the same mixture, so it carries over.
+ */
 export function butterflyG(k: number, s: Slice): number {
   const a = 1 - (k * s.w1) / (2 * s.w)
   return a * a - ((s.w1 * s.w1) / 4) * (1 / s.w + 0.25) + s.w2 / 2

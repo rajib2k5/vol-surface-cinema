@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { phi, ssviSlice, ssviW } from './ssvi.ts'
+import { phi, ssviRightWingSlope, ssviSlice, ssviW } from './ssvi.ts'
 
 describe('ssviW: hand-worked values', () => {
   it('at k = 0, w equals theta for any rho and eta', () => {
@@ -42,5 +42,19 @@ describe('ssviSlice: analytic derivatives', () => {
     const s = ssviSlice(1, { theta: 1, rho: -0.5, eta: 1 })
     expect(s.w1).toBeCloseTo(-0.0945444831, 9)
     expect(s.w2).toBeCloseTo(0.2655701242, 9)
+  })
+})
+
+describe('ssviRightWingSlope', () => {
+  it('is theta * phi * (1 + rho) / 2: theta = 0.04, rho = -0.5, eta = 1 -> 0.04 * 1/sqrt(0.04 * 1.04) / 4', () => {
+    expect(ssviRightWingSlope({ theta: 0.04, rho: -0.5, eta: 1 })).toBeCloseTo((0.04 / Math.sqrt(0.04 * 1.04)) / 4, 14)
+  })
+  it('matches w(k)/k far out in the right wing', () => {
+    const p = { theta: 0.09, rho: -0.3, eta: 1.2 }
+    const k = 1e6
+    expect(ssviW(k, p) / k).toBeCloseTo(ssviRightWingSlope(p), 6)
+  })
+  it('reaches 2 or more when theta * phi * (1 + rho) >= 4 (the large-moment bound fails)', () => {
+    expect(ssviRightWingSlope({ theta: 4, rho: 0.9, eta: 4 })).toBeGreaterThanOrEqual(2)
   })
 })
