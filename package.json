@@ -16,6 +16,7 @@
     "gen:data": "node scripts/generate-synthetic.ts",
     "import:real": "node scripts/import-backtester-frames.ts",
     "export": "npm run build && node scripts/export.ts",
+    "screenshots": "npm run build && node scripts/screenshots.ts",
     "test:e2e": "npm run build && node tests/e2e/export.smoke.ts",
     "test:py": "uv run --locked pytest tools/blender",
     "verify": "npm test && npm run build && npm run test:py"
