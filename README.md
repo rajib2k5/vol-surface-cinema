@@ -25,6 +25,46 @@ To make a static site, build it. Then serve the build.
 
 The build goes to `dist/`. Open `http://localhost:4173`. The page works offline. It loads no font and no script from a network.
 
+## How to use
+
+These pictures come from real runs. The command `npm run screenshots` makes them again. It needs the packages, ffmpeg and the browser from the export section.
+
+**1. Install and build.** Run `npm ci` and `npm run build`.
+
+![Terminal output of npm ci and npm run build. The build ends with a line that says the build is done.](docs/images/01-install.png)
+
+The install adds the packages. The build writes the page to `dist/`.
+
+**2. Open the player.** The page starts on the synthetic data.
+
+![The player on a calm date of the synthetic data. It shows a flat purple surface, the play button, the scrubber and the date buttons.](docs/images/02-player.png)
+
+The surface is flat and calm on this date. The controls are under it.
+
+**3. Find an event.** An event name shows when the animation reaches its date.
+
+![The player on 2030-01-30. A red label says Volatility spike. The surface is high and yellow at the short expiries.](docs/images/03-event.png)
+
+The label "Volatility spike" shows on the date of the spike.
+
+**4. Use the controls.** Press Play or Pause. Drag the scrubber. Select a date.
+
+![The play button, the scrubber at frame 151 of 450, the date buttons and the dataset menu.](docs/images/04-controls.png)
+
+The dataset menu is below the date buttons.
+
+**5. Look at the real data.** Select the SPY dataset in the dataset menu.
+
+![The player on the real SPY dataset. The caption shows two dates and the word interpolated.](docs/images/05-real-dataset.png)
+
+The caption says "(interpolated)" for a frame between two real dates. That frame is not observed.
+
+**6. Export a GIF.** Run the export command.
+
+![Terminal output of the export command. It shows the frame progress and a last line that says the file is written.](docs/images/06-export.png)
+
+The command prints its progress. The last line names the GIF file.
+
 ## Controls
 
 - Play or Pause button: starts or stops the animation.
